@@ -146,6 +146,24 @@ def basic_mesh_s1_p1():
     yield basis, mesh, dof_handler
 
 @pytest.fixture(scope='module')
+def basic_mesh_s1_bdm1_partial_r1():
+    test_mesh = 'test_mesh.1'
+    mesh = mt.Mesh(test_mesh)
+    basis = [bdm.BDMBasis(1)]
+    dof_handler = dof.DOFHandler(mesh,
+                                 basis)
+    yield basis, mesh, dof_handler
+
+@pytest.fixture(scope='module')
+def basic_mesh_s1_bdm1_partial_r2():
+    test_mesh = 'test_mesh.2'
+    mesh = mt.Mesh(test_mesh)
+    basis = [bdm.BDMBasis(1)]
+    dof_handler = dof.DOFHandler(mesh,
+                                 basis)
+    yield basis, mesh, dof_handler
+
+@pytest.fixture(scope='module')
 def basic_mesh_s1_bdm1_p0():
     test_mesh = 'test_struc_mesh.2'
     mesh = mt.Mesh(test_mesh)

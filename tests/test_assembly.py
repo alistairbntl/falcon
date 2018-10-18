@@ -270,6 +270,89 @@ def test_mixed_assembly_1(basic_mesh_bdm1_p0):
 
     # assert abs(l2_vel_error - xxx) < 1.0E-6
 
+@pytest.mark.test
+def test_mixed_assembly_4(basic_mesh_s1_bdm1_partial_r1):
+    basis, mesh, dof_handler = basic_mesh_s1_bdm1_partial_r1
+
+    num_local_dof = sum([a.get_num_dof() for a in basis])
+    
+    global_matrix_assembler = la.GlobalMatrix(dof_handler.get_num_dof(),
+                                              dof_handler.get_num_dof())
+
+    local_matrix_assembler = la.LocalMatrixAssembler(dof_handler,
+                                                     num_local_dof,
+                                                     global_matrix_assembler)
+
+    solution_vec = la.DiscreteSolutionVector(dof_handler.get_num_dof())
+    global_rhs = la.GlobalRHS(dof_handler)
+
+    fx = lambda x,y : y
+    fy = lambda x,y : 0.
+
+    p_dx = lambda x,y : -y
+    p_dy = lambda x,y : 0.
+
+    true_vel = ft.TrueSolution([p_dx,p_dy])
+
+    test_space = basis ; trial_space = basis
+    quadrature = quad.Quadrature(2)
+    reference_element = mt.ReferenceElement()
+
+    num_mesh_elements = mesh.get_num_mesh_elements()
+    for eN in range(num_mesh_elements):
+        element = mesh.get_element(eN)
+        reference_map = mp.ReferenceElementMap(element)
+        piola_map = mp.PiolaMap(element)
+        for quad_pt in quadrature.get_element_quad_pts():
+            value_types_test = ['vals','Jt_vals','|Jt|','quad_wght']
+            value_types_trial = ['vals','Jt_vals']
+            for i in range(test_space[0].get_num_dof()):
+                val_dic_test = test_space[0].get_element_vals(i,
+                                                              quad_pt,
+                                                              reference_map,
+                                                              value_types_test)
+                val_dic_test = piola_map.correct_div_space_vals(val_dic_test,
+                                                                i,
+                                                                test_space[0])
+                # rhs construction
+                int_val = 0.
+                ele_quad_pt = quadrature.get_quad_on_element(piola_map,
+                                                             quad_pt)
+                vals = true_vel.get_f_eval(ele_quad_pt)
+                int_val = (la.Operators.dot_product(vals,
+                                                    val_dic_test['Jt_vals'])
+                           * (1./val_dic_test['|Jt|'])
+                           * ele_quad_pt.get_quad_weight())
+                global_rhs.add_val(eN, i, int_val)
+
+                for j in range(trial_space[0].get_num_dof()):
+                    int_val = 0.
+                    # matrix construction
+                    val_dic_trial = trial_space[0].get_element_vals(j,
+                                                                    quad_pt,
+                                                                    reference_map,
+                                                                    value_types_trial)
+                    val_dic_trial = piola_map.correct_div_space_vals(val_dic_trial,
+                                                                     j,
+                                                                     trial_space[0])
+                    int_val = (la.Operators.dot_product(val_dic_trial['Jt_vals'],
+                                                        val_dic_test['Jt_vals']) *
+                               (1./val_dic_test['|Jt|']) * val_dic_test['quad_wght'])
+                    local_matrix_assembler.add_val(i,j,int_val)
+
+        local_matrix_assembler.distribute_local_2_global(eN)
+        local_matrix_assembler.reset_matrix()
+
+    global_matrix_assembler.initialize_sparse_matrix()
+    global_matrix_assembler.set_csr_rep()
+
+    global_matrix_assembler.solve(global_rhs, solution_vec)
+
+    error_calculator = ec.DarcyErrorHandler(mesh,dof_handler,[basis[0]],solution_vec)
+
+    l2_vel_error = error_calculator.calculate_vel_error(true_vel)
+    assert abs(l2_vel_error) < 1.0e-12
+
 def test_mixed_assembly_2(basic_mesh_s1_bdm1_p0):
     basis, mesh, dof_handler = basic_mesh_s1_bdm1_p0
     assert np.array_equal(dof_handler._l2g_map[0],[1,2,0,9,10,8,16])
@@ -462,7 +545,7 @@ def test_mixed_assembly_2(basic_mesh_s1_bdm1_p0):
 
     l2_vel_error = error_calculator.calculate_vel_error(true_solution)
 
-@pytest.mark.test
+#@pytest.mark.test
 def test_mixed_assembly_3(basic_mesh_s1_bdm1_p0_tmp):
     basis, mesh, dof_handler = basic_mesh_s1_bdm1_p0_tmp
 
