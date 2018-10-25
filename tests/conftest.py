@@ -113,7 +113,7 @@ def basic_mesh_2_P0():
 
 @pytest.fixture(scope='module')
 def basic_mesh_2_BDM1():
-    test_mesh = 'test_mesh.2'
+    test_mesh = 'test_mesh.3'
     mesh = mt.Mesh(test_mesh)
     BDM1_basis = bdm.BDMBasis(1)
     dof_handler = dof.DOFHandler(mesh,
@@ -156,7 +156,7 @@ def basic_mesh_s1_bdm1_partial_r1():
 
 @pytest.fixture(scope='module')
 def basic_mesh_s1_bdm1_partial_r2():
-    test_mesh = 'test_mesh.2'
+    test_mesh = 'test_struc_mesh.2'
     mesh = mt.Mesh(test_mesh)
     basis = [bdm.BDMBasis(1)]
     dof_handler = dof.DOFHandler(mesh,

@@ -454,6 +454,7 @@ class BDMBasis(Basis):
                                edge_func[0][1],
                                edge_func[1][1],
                                edge_func[2][1]]
+
         if self.get_degree() == 2:
             edge_func = self.edge_functions.edge_funcs
             int_func = self.interior_functions.int_funcs
@@ -626,7 +627,7 @@ class BDMBasis(Basis):
     def get_int_func(self,
                      dof_num):
         return self.interior_functions.int_funcs[dof_num]
-    
+
     def get_edge_func(self,
                       basis_edge=None,
                       basis_edge_idx=None,
@@ -650,7 +651,7 @@ class BDMSubFuncs(object):
 
     def get_degree(self):
         return self.k
-    
+
 class BDMIntFuncs(BDMSubFuncs):
 
     def __init__(self, k):
@@ -719,10 +720,10 @@ class BDMEdgeFuncs(BDMSubFuncs):
             self.edge_funcs[0].append(BDMEdgeFuncs._edge_func_one(q1,q0))
             self.edge_div_funcs[0].append(self._edge_func_div_one(q1,q0))
 
-            self.edge_funcs[1].append(BDMEdgeFuncs._edge_func_two(q1,q0))
-            self.edge_div_funcs[1].append(self._edge_func_div_two(q1,q0))
             self.edge_funcs[1].append(BDMEdgeFuncs._edge_func_two(q0,q1))
             self.edge_div_funcs[1].append(self._edge_func_div_two(q0,q1))
+            self.edge_funcs[1].append(BDMEdgeFuncs._edge_func_two(q1,q0))
+            self.edge_div_funcs[1].append(self._edge_func_div_two(q1,q0))
 
             self.edge_funcs[2].append(BDMEdgeFuncs._edge_func_three(q0,q1))
             self.edge_div_funcs[2].append(self._edge_func_div_three(q0,q1))
@@ -733,7 +734,7 @@ class BDMEdgeFuncs(BDMSubFuncs):
             q0 = self.quadrature.edge_quad_pt[0]
             q1 = self.quadrature.edge_quad_pt[1]
             q2 = self.quadrature.edge_quad_pt[2]
-            
+
             edge_one_funcs = self._get_edge_func_one(q0,q1,q2)
             for func in edge_one_funcs:
                 self.edge_funcs[0].append(func)
@@ -771,18 +772,14 @@ class BDMEdgeFuncs(BDMSubFuncs):
     def _lagrange_edge_three(self,p1,p2):
         return lambda xi, eta: (xi-p2) / (p1-p2)
 
-    def _get_edge_func_one(self,q0,q1,q2): 
-        l1 = 0.5 - math.sqrt(15) / 10
-        l2 = 0.5
-        l3 = 0.5 + math.sqrt(15) / 10
-       
+    def _get_edge_func_one(self,q0,q1,q2):
         quad_pair_lst = [((q0,q1) , (q0,q2)),
                          ((q1,q2) , (q1,q0)),
                          ((q2,q0) , (q2,q1))]
         edge_one_func = []
 
         _edge_func_1 = BDMEdgeFuncs._edge_func_one(quad_pair_lst[0][0][0],
-                                           quad_pair_lst[0][0][1])
+                                                   quad_pair_lst[0][0][1])
         _lagrange_1 = self._lagrange_edge_one(quad_pair_lst[0][1][0],
                                               quad_pair_lst[0][1][1])
         f1_1 = lambda xi, eta: _lagrange_1(xi,eta)*_edge_func_1[0](xi,eta)
@@ -790,7 +787,7 @@ class BDMEdgeFuncs(BDMSubFuncs):
         edge_one_func.append(np.array([f1_1,f2_1]))
 
         _edge_func_2 = BDMEdgeFuncs._edge_func_one(quad_pair_lst[1][0][0],
-                                           quad_pair_lst[1][0][1])
+                                                   quad_pair_lst[1][0][1])
         _lagrange_2 = self._lagrange_edge_one(quad_pair_lst[1][1][0],
                                               quad_pair_lst[1][1][1])
         f1_2 = lambda xi, eta: _lagrange_2(xi,eta)*_edge_func_2[0](xi,eta)
@@ -798,24 +795,23 @@ class BDMEdgeFuncs(BDMSubFuncs):
         edge_one_func.append(np.array([f1_2,f2_2]))
 
         _edge_func_3 = BDMEdgeFuncs._edge_func_one(quad_pair_lst[2][0][0],
-                                           quad_pair_lst[2][0][1])
+                                                   quad_pair_lst[2][0][1])
         _lagrange_3 = self._lagrange_edge_one(quad_pair_lst[2][1][0],
                                               quad_pair_lst[2][1][1])
         f1_3 = lambda xi, eta: _lagrange_3(xi,eta)*_edge_func_3[0](xi,eta)
         f2_3 = lambda xi, eta: _lagrange_3(xi,eta)*_edge_func_3[1](xi,eta)
         edge_one_func.append(np.array([f1_3,f2_3]))
-        
+
         return edge_one_func
 
     def _get_edge_func_two(self,q0,q1,q2):
-        quad_pair_lst = [((q2,q0) , (q2,q1)),
+        quad_pair_lst = [((q0,q1) , (q0,q2)),
                          ((q1,q2) , (q1,q0)),
-                         ((q0,q1) , (q0,q2))]
-
+                         ((q2,q0) , (q2,q1))]
         edge_two_func = []
 
         _edge_func_1 = BDMEdgeFuncs._edge_func_two(quad_pair_lst[0][0][0],
-                                           quad_pair_lst[0][0][1])
+                                                   quad_pair_lst[0][0][1])
         _lagrange_1 = self._lagrange_edge_two(quad_pair_lst[0][1][0],
                                               quad_pair_lst[0][1][1])
         f1_1 = lambda xi, eta: _lagrange_1(xi,eta)*_edge_func_1[0](xi,eta)
@@ -823,7 +819,7 @@ class BDMEdgeFuncs(BDMSubFuncs):
         edge_two_func.append(np.array([f1_1,f2_1]))
 
         _edge_func_2 = BDMEdgeFuncs._edge_func_two(quad_pair_lst[1][0][0],
-                                           quad_pair_lst[1][0][1])
+                                                   quad_pair_lst[1][0][1])
         _lagrange_2 = self._lagrange_edge_two(quad_pair_lst[1][1][0],
                                               quad_pair_lst[1][1][1])
         f1_2 = lambda xi, eta: _lagrange_2(xi,eta)*_edge_func_2[0](xi,eta)
@@ -831,13 +827,13 @@ class BDMEdgeFuncs(BDMSubFuncs):
         edge_two_func.append(np.array([f1_2,f2_2]))
 
         _edge_func_3 = BDMEdgeFuncs._edge_func_two(quad_pair_lst[2][0][0],
-                                           quad_pair_lst[2][0][1])
+                                                   quad_pair_lst[2][0][1])
         _lagrange_3 = self._lagrange_edge_two(quad_pair_lst[2][1][0],
                                               quad_pair_lst[2][1][1])
         f1_3 = lambda xi, eta: _lagrange_3(xi,eta)*_edge_func_3[0](xi,eta)
         f2_3 = lambda xi, eta: _lagrange_3(xi,eta)*_edge_func_3[1](xi,eta)
         edge_two_func.append(np.array([f1_3,f2_3]))
-        
+
         return edge_two_func
 
     def _get_edge_func_three(self,q0,q1,q2):
@@ -847,27 +843,27 @@ class BDMEdgeFuncs(BDMSubFuncs):
         edge_three_func = []
 
         _edge_func_1 = BDMEdgeFuncs._edge_func_three(quad_pair_lst[0][0][0],
-                                           quad_pair_lst[0][0][1])
+                                                     quad_pair_lst[0][0][1])
         _lagrange_1 = self._lagrange_edge_three(quad_pair_lst[0][1][0],
-                                              quad_pair_lst[0][1][1])
+                                                quad_pair_lst[0][1][1])
         f1_1 = lambda xi, eta: _lagrange_1(xi,eta)*_edge_func_1[0](xi,eta)
         f2_1 = lambda xi, eta: _lagrange_1(xi,eta)*_edge_func_1[1](xi,eta)
         edge_three_func.append(np.array([f1_1,f2_1]))
 
         _edge_func_2 = BDMEdgeFuncs._edge_func_three(quad_pair_lst[1][0][0],
-                                           quad_pair_lst[1][0][1])
+                                                     quad_pair_lst[1][0][1])
         _lagrange_2 = self._lagrange_edge_three(quad_pair_lst[1][1][0],
-                                              quad_pair_lst[1][1][1])
+                                                quad_pair_lst[1][1][1])
         f1_2 = lambda xi, eta: _lagrange_2(xi,eta)*_edge_func_2[0](xi,eta)
         f2_2 = lambda xi, eta: _lagrange_2(xi,eta)*_edge_func_2[1](xi,eta)
         edge_three_func.append(np.array([f1_2,f2_2]))
 
         _edge_func_3 = BDMEdgeFuncs._edge_func_three(quad_pair_lst[2][0][0],
-                                           quad_pair_lst[2][0][1])
+                                                     quad_pair_lst[2][0][1])
         _lagrange_3 = self._lagrange_edge_three(quad_pair_lst[2][1][0],
-                                              quad_pair_lst[2][1][1])
+                                                quad_pair_lst[2][1][1])
         f1_3 = lambda xi, eta: _lagrange_3(xi,eta)*_edge_func_3[0](xi,eta)
         f2_3 = lambda xi, eta: _lagrange_3(xi,eta)*_edge_func_3[1](xi,eta)
         edge_three_func.append(np.array([f1_3,f2_3]))
-        
+
         return edge_three_func

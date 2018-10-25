@@ -158,7 +158,7 @@ class ReferenceElement(Element):
             for pt in quadrature.edge_quad_pt:
                 self.reference_lagrange_pts[i].append((edge_param[0](pt),
                                                        edge_param[1](pt)))
-                
+
     def get_lagrange_quad_point(self,i,n):
         '''
         Returns the lagrangian quad point on the boundaries of
@@ -178,7 +178,7 @@ class ReferenceElement(Element):
         if i==0:
             return (lambda s: 1-s, lambda s: s)
         if i==1:
-            return (lambda s: 0., lambda s: 1-s)
+            return (lambda s: 0., lambda s: s)
         if i==2:
             return (lambda s: s, lambda s: 0.)
 

@@ -18,14 +18,7 @@ def test_bdm_normal_edge_1(bdm_edge_tests):
             func_1 = BDM1_basis.get_edge_normal_func(edge_1,edge_0,1)
             for idx in range(2):
                 pt = reference_element.get_lagrange_quad_point(edge_1,idx)
-                if edge_0 == edge_1 and edge_0==0:
-                    if idx==0:
-                        assert func_0(pt[0],pt[1]) == 0.0
-                        assert func_1(pt[0],pt[1]) == 1.0
-                    if idx==1:
-                        assert func_0(pt[0],pt[1]) == 1.0
-                        assert func_1(pt[0],pt[1]) == 0.0
-                elif edge_0 == edge_1 and (edge_0==1 or edge_0==2):
+                if edge_0 == edge_1:
                     if idx==0:
                         assert func_0(pt[0],pt[1]) == 1.0
                         assert func_1(pt[0],pt[1]) == 0.0
@@ -56,30 +49,30 @@ def test_bdm2_normal_edge_1(bdm2_edge_tests):
                 assert abs(int_func_2(pt[0],pt[1])-0.) <= 1.0e-12                
                 if edge_0 == edge_1 and edge_0==0:
                     if idx==0:
-                        assert abs(func_0(pt[0],pt[1])-0.) <= 1.0e-12
+                        assert abs(func_0(pt[0],pt[1])-1.) <= 1.0e-12
                         assert abs(func_1(pt[0],pt[1])-0.) <= 1.0e-12
-                        assert abs(func_2(pt[0],pt[1])-1.0) <= 1.0e-12
+                        assert abs(func_2(pt[0],pt[1])-0.0) <= 1.0e-12
                     if idx==1:
                         assert abs(func_0(pt[0],pt[1])-0.) <= 1.0e-12
                         assert abs(func_1(pt[0],pt[1])-1.) <= 1.0e-12
                         assert abs(func_2(pt[0],pt[1])-0.) <= 1.0e-12
                     if idx==2:
-                        assert abs(func_0(pt[0],pt[1])-1.) <= 1.0e-12
-                        assert abs(func_1(pt[0],pt[1])-0.) <= 1.0e-12
-                        assert abs(func_2(pt[0],pt[1])-0.) <= 1.0e-12
-                elif edge_0 == edge_1 and edge_0==1:
-                    if idx==0:
                         assert abs(func_0(pt[0],pt[1])-0.) <= 1.0e-12
                         assert abs(func_1(pt[0],pt[1])-0.) <= 1.0e-12
                         assert abs(func_2(pt[0],pt[1])-1.) <= 1.0e-12
+                elif edge_0 == edge_1 and edge_0==1:
+                    if idx==0:
+                        assert abs(func_0(pt[0],pt[1])-1.) <= 1.0e-12
+                        assert abs(func_1(pt[0],pt[1])-0.) <= 1.0e-12
+                        assert abs(func_2(pt[0],pt[1])-0.) <= 1.0e-12
                     if idx==1:
                         assert abs(func_0(pt[0],pt[1])-0.) <= 1.0e-12
                         assert abs(func_1(pt[0],pt[1])-1.) <= 1.0e-12
                         assert abs(func_2(pt[0],pt[1])-0.) <= 1.0e-12                        
                     if idx==2:
-                        assert abs(func_0(pt[0],pt[1])-1.) <= 1.0e-12
+                        assert abs(func_0(pt[0],pt[1])-0.) <= 1.0e-12
                         assert abs(func_1(pt[0],pt[1])-0.) <= 1.0e-12
-                        assert abs(func_2(pt[0],pt[1])-0.) <= 1.0e-12
+                        assert abs(func_2(pt[0],pt[1])-1.) <= 1.0e-12
                 elif edge_0 == edge_1 and edge_0 == 2:
                     if idx==0:
                         assert abs(func_0(pt[0],pt[1])-1.) <= 1.0e-12
@@ -96,7 +89,8 @@ def test_bdm2_normal_edge_1(bdm2_edge_tests):
                 else:
                     assert abs(func_0(pt[0],pt[1])) <= 1.0e-12
                     assert abs(func_1(pt[0],pt[1])) <= 1.0e-12
-                    
+
+@pytest.mark.bdm
 def test_bdm_val_cal_1():
     reference_element = mt.ReferenceElement()
     bdm_basis = bdm.BDMBasis(1)
@@ -116,7 +110,7 @@ def test_bdm_val_cal_1():
             assert np.array_equal(test['vals'], test['Jt_vals'])
             assert test['|Jt|'] == 1.0
 
-#@pytest.mark.current
+@pytest.mark.bdm
 def test_bdm_edge_length_1(basic_mesh_2_BDM1):
     BDM1_basis, mesh, dof_handler = basic_mesh_2_BDM1
     reference_element = mt.ReferenceElement()
@@ -162,7 +156,7 @@ def test_bdm_edge_length_1(basic_mesh_2_BDM1):
 
     assert abs(norm_val-norm_val_1) < 1.e-8
 
-#@pytest.mark.current
+@pytest.mark.bdm
 def test_p1basis_2d():
     # build test on reference element
     reference_element = mt.ReferenceElement()

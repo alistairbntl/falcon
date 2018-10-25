@@ -22,7 +22,7 @@ class SolutionHandler(object):
         Finite element dof_handler class
     basis : lst
         A list of the finite element bases used in the problem.
-    solution : 
+    solution :
     """
 
     def __init__(self,
@@ -58,8 +58,8 @@ class SolutionHandler(object):
         return self._basis[num]
 
     def get_num_bases(self):
-        """ 
-        Return the number of finite element bases used in the 
+        """
+        Return the number of finite element bases used in the
         simulation.
 
         Return
@@ -89,7 +89,7 @@ class SolutionHandler(object):
                 self._dof_lst[basis_idx + 1]]
 
     def get_num_preceeding_local_dof(self,basis_idx):
-        """ 
+        """
         Return the number of dof indices preceeding the current basis
         on a single element.
 
@@ -111,13 +111,13 @@ class SolutionHandler(object):
 
     def get_solution(self):
         return self._solution
-    
+
     def get_bdm_solution_approx(self,
                                 element,
                                 reference_map,
                                 piola_map,
                                 quad_pt):
-        """ 
+        """
         This function uses the finite element solution and basis to get the
         complete solution approximation.
 
@@ -127,7 +127,6 @@ class SolutionHandler(object):
         reference_map :
         piola_map :
         quad_pt : quad_pt
-            This quad point should be taken from the physical domain
         """
         basis = self.get_sub_basis(0)
         # TODO - ARB, I think the basis would be better provided as a function call
@@ -144,6 +143,7 @@ class SolutionHandler(object):
             basis_val = piola_map.correct_div_space_vals(basis_val,
                                                          i,
                                                          basis)
+
             j = self.get_dof_handler().get_local_2_global(element.get_global_idx(),
                                                           i)
             basis_val = self.get_solution().scale_basis_by_solution(j,
@@ -155,14 +155,14 @@ class SolutionHandler(object):
                                     element,
                                     basis_idx,
                                     quad_pt):
-        """ 
-        Finds the solution approximation for an element based finite 
+        """
+        Finds the solution approximation for an element based finite
         element.
-        
+
         Arguments
         ---------
         basis : :class:`basis`
-            The specific element basis used in the finite element 
+            The specific element basis used in the finite element
             calculation.
         """
         num_preceeding_dof = self.get_num_preceeding_local_dof(basis_idx)
@@ -223,11 +223,11 @@ class VisualizationHandler(SolutionHandler):
                        file_name,
                        solu_info):
         np.save(file_name+'_u', solu_info)
-        
+
     def output_nodal_solution(self,
                               file_name,
                               true_sol=None):
-        """ 
+        """
         Calculates the nodal solution values for a scalar valued
         problem.
 
@@ -249,7 +249,7 @@ class VisualizationHandler(SolutionHandler):
 
         node_val = np.zeros(num_mesh_nodes)
         num_mesh_nodes = mesh.get_num_mesh_nodes()
-        
+
         for nN in range(num_mesh_nodes):
             node = mesh.get_node(nN)
             global_node_idx = node.get_global_idx()
@@ -262,8 +262,7 @@ class VisualizationHandler(SolutionHandler):
         self.save_mesh_info(file_name)
         self.save_solu_info(file_name,
                             node_val)
-        
-    
+
 class DarcyErrorHandler(SolutionHandler):
 
     def __init__(self,
@@ -275,44 +274,47 @@ class DarcyErrorHandler(SolutionHandler):
                                                 dof_handler,
                                                 basis,
                                                 solution)
-        
+
     def calculate_vel_error(self,
                             true_solution,
                             r=0):
         """
         Calculates the velocity error.
-        
+
         Arguments
         ---------
-        r : 
+        r :
             Power of the r for the inner-product
         """
 
-        mesh = self.get_mesh()        
+        mesh = self.get_mesh()
         k = self.get_basis()[0].get_degree()
         quadrature = quad.Quadrature(k+1)
 
         num_mesh_elements = mesh.get_num_mesh_elements()
         element_errors = np.zeros(num_mesh_elements)
-        
+
         for eN in range(num_mesh_elements):
             element = mesh.get_element(eN)
             reference_map = mpt.ReferenceElementMap(element)
             piola_map = mpt.PiolaMap(element)
 
             for quad_pt in quadrature.get_element_quad_pts():
+
+                ele_quad_pt = quadrature.get_quad_on_element(piola_map,
+                                                             quad_pt)
+
                 sol_val = self.get_bdm_solution_approx(element,
                                                        reference_map,
                                                        piola_map,
                                                        quad_pt)
-                ele_quad_pt = quadrature.get_quad_on_element(piola_map,
-                                                             quad_pt)
                 r_val = ele_quad_pt[0]**r
-                
+
                 true_solution_vals = true_solution.get_f_vel_eval(ele_quad_pt)
 
                 u_error_sq = (true_solution_vals[0]-sol_val[0])**2
                 v_error_sq = (true_solution_vals[1]-sol_val[1])**2
+
                 element_errors[eN] += (u_error_sq + v_error_sq)*r_val*ele_quad_pt.get_quad_weight()
 
         return math.sqrt(element_errors.sum())
@@ -338,7 +340,7 @@ class DarcyErrorHandler(SolutionHandler):
             node_val.append(np.zeros(num_nodes))
             true_node_val.append(np.zeros(num_nodes))
             error.append(np.zeros(num_nodes))
-        
+
         for eN in range(num_mesh_elements):
             element = mesh.get_element(eN)
             reference_map = mpt.ReferenceElementMap(element)
@@ -354,7 +356,7 @@ class DarcyErrorHandler(SolutionHandler):
                                                        piola_map,
                                                        node_quad_pt)
                     xi = node.vals[0]
-                    yi = node.vals[1]                    
+                    yi = node.vals[1]
                     for i in range(num_components-1):
                         node_val[i][global_node_idx] = sol_val[i]
                         true_node_val[i][global_node_idx] = true_sol[i](xi,yi)
@@ -404,7 +406,7 @@ class DarcyErrorHandler(SolutionHandler):
         #                                   sol_val[0]])
         #             # solu_file_y.writerow([ele_quad_pt[0],
         #             #                       ele_quad_pt[1],
-        #             #                       sol_val[1]])                    
+        #             #                       sol_val[1]])
 
 class ElasticityErrorHandler(SolutionHandler):
 
@@ -479,7 +481,7 @@ class ElasticityErrorHandler(SolutionHandler):
                 ele_quad_pt = quadrature.get_quad_on_element(reference_map,
                                                              quad_pt)
                 r_val = ele_quad_pt[0]**r
-                
+
                 true_solution_vals = true_solution.get_f_eval(ele_quad_pt)
                 u1_error_sq = (true_solution_vals[0] - sol_val[0])**2
                 u2_error_sq = (true_solution_vals[1] - sol_val[1])**2
