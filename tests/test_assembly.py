@@ -519,7 +519,6 @@ def test_mixed_assembly_2(basic_mesh_s1_bdm1_p0):
     l2_vel_error = error_calculator.calculate_vel_error(true_solution)
     #ARB TODO - let's extend this further.
 
-@pytest.mark.skip
 def test_mixed_assembly_3(basic_mesh_s1_bdm1_p0_tmp):
     basis, mesh, dof_handler = basic_mesh_s1_bdm1_p0_tmp
 
@@ -634,7 +633,6 @@ def test_mixed_assembly_3(basic_mesh_s1_bdm1_p0_tmp):
                     i_tmp = i + test_space[0].get_num_dof()
                     local_matrix_assembler.add_val(i_tmp,j,int_val)
 
-
         local_matrix_assembler.distribute_local_2_global(eN)
         local_matrix_assembler.reset_matrix()
 
@@ -651,7 +649,7 @@ def test_mixed_assembly_3(basic_mesh_s1_bdm1_p0_tmp):
     # ******************* Pin down the pressure to make system non-singular ****************
     global_matrix_assembler.set_row_as_dirichlet_bdy(dof_handler.get_num_dof() - 1)
 
-    for basis_ele in trial_space:
+    for basis_ele in [trial_space[0]]:
         for boundary_dof in dof_handler.get_bdy_dof_dic(basis_ele.get_name()):
             dof_idx, bdy_type, bdy_type_global_idx = boundary_dof
             global_matrix_assembler.set_row_as_dirichlet_bdy(dof_idx)
