@@ -1,5 +1,28 @@
 import numpy as np
 
+class Operators():
+
+    @staticmethod
+    def create_dot_product_func(f1,f2):
+        f_new = lambda x,y : f1[0](x,y)*f2[0](x,y) + f1[1](x,y)*f2[1](x,y) 
+        return f_new
+
+    @staticmethod
+    def create_product_func(f1,f2):
+        f_new = lambda x,y : f1(x,y)*f2(x,y)
+        return f_new
+
+    @staticmethod
+    def create_sum_func(f1,f2):
+        f_new = lambda x,y : f1(x,y) + f2(x,y)
+        return f_new
+        
+    @staticmethod
+    def create_scalar_vector_div_func(s1, grad_s1, v1, div_v1):
+        div_p1 = Operators.create_dot_product_func(v1, grad_s1)
+        div_p2 = Operators.create_product_func(s1, div_v1)
+        return Operators.create_sum_func(div_p1, div_p2)
+
 class Function(object):
 
     def __init__(self,f):
