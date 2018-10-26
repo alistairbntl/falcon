@@ -37,7 +37,6 @@ def test_assembly_1(basic_mesh_bdm):
                                                                          edge_dof)
                 assert 1 == func(edge_quad_pt[0],edge_quad_pt[1])
 
-@pytest.mark.test
 def test_assembly_2(basic_mesh_P0):
     P0_basis, mesh, dof_handler = basic_mesh_P0
 
@@ -63,7 +62,6 @@ def test_assembly_2(basic_mesh_P0):
 
         assert element_area == 0.5
 
-@pytest.mark.test
 def test_assembly_3(basic_mesh_2_P0):
     P0_basis, mesh, dof_handler = basic_mesh_2_P0
 
@@ -88,7 +86,6 @@ def test_assembly_3(basic_mesh_2_P0):
 
         assert element_area == element.get_area()
 
-@pytest.mark.test
 def test_mixed_assembly_1(basic_mesh_bdm1_p0):
     basis, mesh, dof_handler = basic_mesh_bdm1_p0
 
@@ -269,7 +266,6 @@ def test_mixed_assembly_1(basic_mesh_bdm1_p0):
 
     # assert abs(l2_vel_error - xxx) < 1.0E-6
 
-@pytest.mark.test
 def test_mixed_assembly_4(basic_mesh_s1_bdm1_partial_r1):
     basis, mesh, dof_handler = basic_mesh_s1_bdm1_partial_r1
 
@@ -354,7 +350,7 @@ def test_mixed_assembly_4(basic_mesh_s1_bdm1_partial_r1):
 
 def test_mixed_assembly_2(basic_mesh_s1_bdm1_p0):
     basis, mesh, dof_handler = basic_mesh_s1_bdm1_p0
-    assert np.array_equal(dof_handler._l2g_map[0], [1,2,0,9,10,8,16])
+    assert np.array_equal(dof_handler._l2g_map[0], [1, 2, 0, 9, 10, 8, 16])
     assert np.array_equal(dof_handler._l2g_map[1], [5.,4.,3.,13.,12.,11.,17])
     assert np.array_equal(dof_handler._l2g_map[2], [1.,5.,6.,9.,13.,14.,18])
     assert np.array_equal(dof_handler._l2g_map[3], [2.,4.,7.,10.,12.,15.,19])
@@ -499,25 +495,24 @@ def test_mixed_assembly_2(basic_mesh_s1_bdm1_p0):
     global_matrix_assembler.set_row_as_dirichlet_bdy(dof_handler.get_num_dof() - 1)
     assert sp_la.norm(global_matrix_assembler.get_csr_rep().getrow(dof_handler.get_num_dof()-1)[0]) == 1.
 
-    for basis_ele in trial_space:
-        for boundary_dof in dof_handler.get_bdy_dof_dic(basis_ele.get_name()):
-            dof_idx, bdy_type, bdy_type_global_idx = boundary_dof
-            global_matrix_assembler.set_row_as_dirichlet_bdy(dof_idx)
+    for boundary_dof in dof_handler.get_bdy_dof_dic('bdm_basis'):
+        dof_idx, bdy_type, bdy_type_global_idx = boundary_dof
+        global_matrix_assembler.set_row_as_dirichlet_bdy(dof_idx)
 
-            global_edge = mesh.get_edge(bdy_type_global_idx)
-            local_edge_dof = dof_handler.get_local_edge_dof_idx(dof_idx,
-                                                                bdy_type_global_idx)
-            quad_pt = quadrature.find_one_quad_on_edge(global_edge, local_edge_dof)
-            n = global_edge.get_unit_normal_vec()
-            udotn = dirichlet_forcing_function.get_normal_velocity_func(n)
-            val = udotn(quad_pt[0],quad_pt[1])
-            global_rhs.set_value(dof_idx,val)
+        global_edge = mesh.get_edge(bdy_type_global_idx)
+        local_edge_dof = dof_handler.get_local_edge_dof_idx(dof_idx,
+                                                            bdy_type_global_idx)
+        quad_pt = quadrature.find_one_quad_on_edge(global_edge, local_edge_dof)
+        n = global_edge.get_unit_normal_vec()
+        udotn = dirichlet_forcing_function.get_normal_velocity_func(n)
+        val = udotn(quad_pt[0],quad_pt[1])
+        global_rhs.set_value(dof_idx,val)
 
     global_matrix_assembler.solve(global_rhs, solution_vec)
 
     error_calculator = ec.DarcyErrorHandler(mesh,dof_handler,[basis[0]],solution_vec)
     l2_vel_error = error_calculator.calculate_vel_error(true_solution)
-    #ARB TODO - let's extend this further.
+    assert abs(l2_vel_error - 0.54263175) < 1.0E-8
 
 def test_mixed_assembly_3(basic_mesh_s1_bdm1_p0_tmp):
     basis, mesh, dof_handler = basic_mesh_s1_bdm1_p0_tmp
