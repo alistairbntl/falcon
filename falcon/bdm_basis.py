@@ -3,6 +3,7 @@ import math
 
 import quadrature as quad
 import mesh_tools as mt
+import function_tools as ft
 
 class Empty(object):
 
@@ -480,6 +481,21 @@ class BDMBasis(Basis):
                                    edge_div_func[0][1],
                                    edge_div_func[1][1],
                                    edge_div_func[2][1]]
+        if self.get_degree() == 2:
+            edge_div_func = self.edge_functions.edge_div_funcs
+            int_div_func = self.interior_functions.int_div_funcs
+            self._basis_div_lst = [edge_div_func[0][0],
+                                   edge_div_func[1][0],
+                                   edge_div_func[2][0],
+                                   edge_div_func[0][1],
+                                   edge_div_func[1][1],
+                                   edge_div_func[2][1],
+                                   edge_div_func[0][2],
+                                   edge_div_func[1][2],
+                                   edge_div_func[2][2],
+                                   int_div_func[0],
+                                   int_div_func[1],
+                                   int_div_func[2]]
 
     def get_name(self):
         return "bdm_basis"
@@ -660,6 +676,7 @@ class BDMIntFuncs(BDMSubFuncs):
 
     def _initialize_interior_functions(self):
         self.int_funcs = []
+        self.int_div_funcs = []
         if self.get_degree() == 1:
             # No interior functions for BDM1
             pass
@@ -667,17 +684,51 @@ class BDMIntFuncs(BDMSubFuncs):
             q0 = self.quadrature.edge_quad_pt[0]
             q1 = self.quadrature.edge_quad_pt[1]
 
-            f11 = lambda xi, eta: (1-xi-eta) * BDMEdgeFuncs._edge_func_one(q0,q1)[0](xi, eta)
-            f12 = lambda xi, eta: (1-xi-eta) * BDMEdgeFuncs._edge_func_one(q0,q1)[1](xi, eta)
+            ell1 = lambda xi, eta: 1 - xi - eta
+            grad_ell1 = [lambda xi, eta: -1., lambda xi, eta: -1.]
+            ell2 = lambda xi, eta: xi
+            grad_ell2 = [lambda xi, eta: 1., lambda xi, eta: 0.]            
+            ell3 = lambda xi, eta: eta
+            grad_ell3 = [lambda xi, eta: 0., lambda xi, eta: 1.]
+
+            e0 = [BDMEdgeFuncs._edge_func_one(q0,q1)[0],
+                  BDMEdgeFuncs._edge_func_one(q0,q1)[1]]
+            e0_div = BDMEdgeFuncs._edge_func_div_one(q0,q1)
+            e1 = [BDMEdgeFuncs._edge_func_two(q0,q1)[0],
+                  BDMEdgeFuncs._edge_func_two(q0,q1)[1]]
+            e1_div = BDMEdgeFuncs._edge_func_div_two(q0,q1)
+            e2 = [BDMEdgeFuncs._edge_func_three(q0,q1)[0],
+                  BDMEdgeFuncs._edge_func_three(q0,q1)[1]]
+            e2_div = BDMEdgeFuncs._edge_func_div_three(q0,q1)
+
+            f11 = lambda xi, eta: ell1(xi, eta) * e0[0](xi, eta)
+            f12 = lambda xi, eta: ell1(xi, eta) * e0[1](xi, eta)
             self.int_funcs.append( np.array([f11, f12]) )
+            self.int_div_funcs.append( self._get_int_div_func(ell1,
+                                                              grad_ell1,
+                                                              e0,
+                                                              e0_div) )
 
-            f21 = lambda xi, eta: xi * BDMEdgeFuncs._edge_func_two(q0,q1)[0](xi, eta)
-            f22 = lambda xi, eta: xi * BDMEdgeFuncs._edge_func_two(q0,q1)[1](xi, eta)
+            f21 = lambda xi, eta: ell2(xi, eta) * e1[0](xi, eta)
+            f22 = lambda xi, eta: ell2(xi, eta) * e1[1](xi, eta)
             self.int_funcs.append( np.array([f21, f22]) )
+            self.int_div_funcs.append( self._get_int_div_func(ell2,
+                                                              grad_ell2,
+                                                              e1,
+                                                              e1_div) )            
 
-            f31 = lambda xi, eta: eta * BDMEdgeFuncs._edge_func_three(q0,q1)[0](xi, eta)
-            f32 = lambda xi, eta: eta * BDMEdgeFuncs._edge_func_three(q0,q1)[1](xi, eta)
+            f31 = lambda xi, eta: ell3(xi, eta) * e2[0](xi,eta)
+            f32 = lambda xi, eta: ell3(xi, eta) * e2[1](xi,eta)
             self.int_funcs.append( np.array([f31, f32]) )
+            self.int_div_funcs.append( self._get_int_div_func(ell3,
+                                                              grad_ell3,
+                                                              e2,
+                                                              e2_div) )
+
+    def _get_int_div_func(self, ell, grad_ell, e, e_div):
+        func_1 = lambda xi, eta : grad_ell[0](xi, eta)*e[0](xi,eta) + grad_ell[1](xi,eta)*e[1](xi,eta)
+        func_2 = lambda xi, eta : ell(xi,eta) * e_div(xi,eta)
+        return lambda xi, eta : func_1(xi,eta) + func_2(xi,eta)
 
 class BDMEdgeFuncs(BDMSubFuncs):
 
@@ -704,6 +755,52 @@ class BDMEdgeFuncs(BDMSubFuncs):
         return np.array([lambda xi, eta: const * (q2-1) * xi ,
                          lambda xi, eta: const * (xi + q2*eta - q2) ])
 
+    @staticmethod
+    def _edge_func_div_one(q1,q2):
+        sqrt_2 = math.sqrt(2)
+        const = sqrt_2 / (q2-q1)
+        div_f = lambda xi, eta: const*(q2 + (q2-1))
+        return div_f
+
+    @staticmethod
+    def _edge_func_div_two(q1,q2):
+        const = 1.0 / (q2 - q1)
+        div_f = lambda xi, eta: const*(q2 + (q2-1))
+        return div_f
+    
+    @staticmethod
+    def _edge_func_div_three(q1,q2):
+        const = 1.0 / (q2-q1)
+        div_f = lambda xi, eta: const*((q2-1) + q2)
+        return div_f
+    
+    @staticmethod
+    def _lagrange_edge_one(p1,p2):
+        return lambda xi, eta: (eta-p2) / (p1-p2)
+
+    @staticmethod
+    def _lagrange_edge_one_grad(p1, p2):
+        return [lambda xi, eta: 0. ,
+                lambda xi, eta: 1. / (p1-p2) ]
+
+    @staticmethod
+    def _lagrange_edge_two(p1,p2):
+        return lambda xi, eta: (eta-p2) / (p1-p2)
+
+    @staticmethod    
+    def _lagrange_edge_two_grad(p1, p2):
+        return [lambda xi, eta: 0. ,
+                lambda xi, eta: 1. / (p1-p2) ]
+
+    @staticmethod    
+    def _lagrange_edge_three(p1,p2):
+        return lambda xi, eta: (xi-p2) / (p1-p2)
+
+    @staticmethod
+    def _lagrange_edge_three_grad(p1, p2):
+        return [lambda xi, eta: 1. / (p1-p2),
+                lambda xi, eta: 0. ]    
+
     def _initialize_edge_functions(self):
         self._get_edge_vec_functions()
 
@@ -716,154 +813,227 @@ class BDMEdgeFuncs(BDMSubFuncs):
             q1 = self.quadrature.edge_quad_pt[1]
 
             self.edge_funcs[0].append(BDMEdgeFuncs._edge_func_one(q0,q1))
-            self.edge_div_funcs[0].append(self._edge_func_div_one(q0,q1))
+            self.edge_div_funcs[0].append(BDMEdgeFuncs._edge_func_div_one(q0,q1))
             self.edge_funcs[0].append(BDMEdgeFuncs._edge_func_one(q1,q0))
-            self.edge_div_funcs[0].append(self._edge_func_div_one(q1,q0))
+            self.edge_div_funcs[0].append(BDMEdgeFuncs._edge_func_div_one(q1,q0))
 
             self.edge_funcs[1].append(BDMEdgeFuncs._edge_func_two(q0,q1))
-            self.edge_div_funcs[1].append(self._edge_func_div_two(q0,q1))
+            self.edge_div_funcs[1].append(BDMEdgeFuncs._edge_func_div_two(q0,q1))
             self.edge_funcs[1].append(BDMEdgeFuncs._edge_func_two(q1,q0))
-            self.edge_div_funcs[1].append(self._edge_func_div_two(q1,q0))
+            self.edge_div_funcs[1].append(BDMEdgeFuncs._edge_func_div_two(q1,q0))
 
             self.edge_funcs[2].append(BDMEdgeFuncs._edge_func_three(q0,q1))
-            self.edge_div_funcs[2].append(self._edge_func_div_three(q0,q1))
+            self.edge_div_funcs[2].append(BDMEdgeFuncs._edge_func_div_three(q0,q1))
             self.edge_funcs[2].append(BDMEdgeFuncs._edge_func_three(q1,q0))
-            self.edge_div_funcs[2].append(self._edge_func_div_three(q1,q0))
+            self.edge_div_funcs[2].append(BDMEdgeFuncs._edge_func_div_three(q1,q0))
 
         if self.k==2:
             q0 = self.quadrature.edge_quad_pt[0]
             q1 = self.quadrature.edge_quad_pt[1]
             q2 = self.quadrature.edge_quad_pt[2]
 
-            edge_one_funcs = self._get_edge_func_one(q0,q1,q2)
+            edge_one_funcs, edge_one_div_funcs = self._get_edge_func_one(q0,q1,q2)
             for func in edge_one_funcs:
                 self.edge_funcs[0].append(func)
+            for func in edge_one_div_funcs:
+                self.edge_div_funcs[0].append(func)
 
-            edge_two_funcs = self._get_edge_func_two(q0,q1,q2)
+            edge_two_funcs, edge_two_div_funcs = self._get_edge_func_two(q0,q1,q2)
             for func in edge_two_funcs:
                 self.edge_funcs[1].append(func)
+            for func in edge_two_div_funcs:
+                self.edge_div_funcs[1].append(func)                
 
-            edge_three_funcs = self._get_edge_func_three(q0,q1,q2)
+            edge_three_funcs, edge_three_div_funcs = self._get_edge_func_three(q0,q1,q2)
             for func in edge_three_funcs:
                 self.edge_funcs[2].append(func)
-
-    def _edge_func_div_one(self,q1,q2):
-        sqrt_2 = math.sqrt(2)
-        const = sqrt_2 / (q2-q1)
-        div_f = lambda xi, eta: const*(q2 + (q2-1))
-        return div_f
-
-    def _edge_func_div_two(self,q1,q2):
-        const = 1.0 / (q2 - q1)
-        div_f = lambda xi, eta: const*(q2 + (q2-1))
-        return div_f
-
-    def _edge_func_div_three(self,q1,q2):
-        const = 1.0 / (q2-q1)
-        div_f = lambda xi, eta: const*((q2-1) + q2)
-        return div_f
-
-    def _lagrange_edge_one(self,p1,p2):
-        return lambda xi, eta: (eta-p2) / (p1-p2)
-
-    def _lagrange_edge_two(self,p1,p2):
-        return lambda xi, eta: (eta-p2) / (p1-p2)
-
-    def _lagrange_edge_three(self,p1,p2):
-        return lambda xi, eta: (xi-p2) / (p1-p2)
+            for func in edge_three_div_funcs:
+                self.edge_div_funcs[2].append(func)                
 
     def _get_edge_func_one(self,q0,q1,q2):
         quad_pair_lst = [((q0,q1) , (q0,q2)),
                          ((q1,q2) , (q1,q0)),
                          ((q2,q0) , (q2,q1))]
         edge_one_func = []
+        edge_one_div_func = []
 
         _edge_func_1 = BDMEdgeFuncs._edge_func_one(quad_pair_lst[0][0][0],
                                                    quad_pair_lst[0][0][1])
+        _edge_func_div_1 = BDMEdgeFuncs._edge_func_div_one(quad_pair_lst[0][0][0],
+                                                           quad_pair_lst[0][0][1])
         _lagrange_1 = self._lagrange_edge_one(quad_pair_lst[0][1][0],
                                               quad_pair_lst[0][1][1])
+        _lagrange_grad_1 = self._lagrange_edge_one_grad(quad_pair_lst[0][1][0],
+                                                        quad_pair_lst[0][1][1])
+
         f1_1 = lambda xi, eta: _lagrange_1(xi,eta)*_edge_func_1[0](xi,eta)
         f2_1 = lambda xi, eta: _lagrange_1(xi,eta)*_edge_func_1[1](xi,eta)
         edge_one_func.append(np.array([f1_1,f2_1]))
+        div_1 = ft.Operators.create_scalar_vector_div_func(_lagrange_1,
+                                                           _lagrange_grad_1,
+                                                           _edge_func_1,
+                                                           _edge_func_div_1)
+        edge_one_div_func.append(div_1)
 
         _edge_func_2 = BDMEdgeFuncs._edge_func_one(quad_pair_lst[1][0][0],
                                                    quad_pair_lst[1][0][1])
+        _edge_func_div_2 = BDMEdgeFuncs._edge_func_div_one(quad_pair_lst[1][0][0],
+                                                           quad_pair_lst[1][0][1])
         _lagrange_2 = self._lagrange_edge_one(quad_pair_lst[1][1][0],
                                               quad_pair_lst[1][1][1])
+        _lagrange_grad_2 = self._lagrange_edge_one_grad(quad_pair_lst[1][1][0],
+                                                        quad_pair_lst[1][1][1])
+
         f1_2 = lambda xi, eta: _lagrange_2(xi,eta)*_edge_func_2[0](xi,eta)
         f2_2 = lambda xi, eta: _lagrange_2(xi,eta)*_edge_func_2[1](xi,eta)
         edge_one_func.append(np.array([f1_2,f2_2]))
+        div_2 = ft.Operators.create_scalar_vector_div_func(_lagrange_2,
+                                                           _lagrange_grad_2,
+                                                           _edge_func_2,
+                                                           _edge_func_div_2)
+        edge_one_div_func.append(div_2)
 
         _edge_func_3 = BDMEdgeFuncs._edge_func_one(quad_pair_lst[2][0][0],
                                                    quad_pair_lst[2][0][1])
+        _edge_func_div_3 = BDMEdgeFuncs._edge_func_div_one(quad_pair_lst[2][0][0],
+                                                           quad_pair_lst[2][0][1])        
         _lagrange_3 = self._lagrange_edge_one(quad_pair_lst[2][1][0],
                                               quad_pair_lst[2][1][1])
+        _lagrange_grad_3 = self._lagrange_edge_one_grad(quad_pair_lst[2][1][0],
+                                                        quad_pair_lst[2][1][1])
+
         f1_3 = lambda xi, eta: _lagrange_3(xi,eta)*_edge_func_3[0](xi,eta)
         f2_3 = lambda xi, eta: _lagrange_3(xi,eta)*_edge_func_3[1](xi,eta)
         edge_one_func.append(np.array([f1_3,f2_3]))
+        div_3 = ft.Operators.create_scalar_vector_div_func(_lagrange_3,
+                                                           _lagrange_grad_3,
+                                                           _edge_func_3,
+                                                           _edge_func_div_3)
+        edge_one_div_func.append(div_3)
 
-        return edge_one_func
+        return edge_one_func, edge_one_div_func
 
     def _get_edge_func_two(self,q0,q1,q2):
         quad_pair_lst = [((q0,q1) , (q0,q2)),
                          ((q1,q2) , (q1,q0)),
                          ((q2,q0) , (q2,q1))]
         edge_two_func = []
+        edge_two_div_func = []
 
         _edge_func_1 = BDMEdgeFuncs._edge_func_two(quad_pair_lst[0][0][0],
                                                    quad_pair_lst[0][0][1])
+        _edge_func_div_1 = BDMEdgeFuncs._edge_func_div_two(quad_pair_lst[0][0][0],
+                                                           quad_pair_lst[0][0][1])
         _lagrange_1 = self._lagrange_edge_two(quad_pair_lst[0][1][0],
                                               quad_pair_lst[0][1][1])
+        _lagrange_grad_1 = self._lagrange_edge_two_grad(quad_pair_lst[0][1][0],
+                                                        quad_pair_lst[0][1][1])
+
         f1_1 = lambda xi, eta: _lagrange_1(xi,eta)*_edge_func_1[0](xi,eta)
         f2_1 = lambda xi, eta: _lagrange_1(xi,eta)*_edge_func_1[1](xi,eta)
         edge_two_func.append(np.array([f1_1,f2_1]))
+        div_1 = ft.Operators.create_scalar_vector_div_func(_lagrange_1,
+                                                           _lagrange_grad_1,
+                                                           _edge_func_1,
+                                                           _edge_func_div_1)
+        edge_two_div_func.append(div_1)
 
         _edge_func_2 = BDMEdgeFuncs._edge_func_two(quad_pair_lst[1][0][0],
                                                    quad_pair_lst[1][0][1])
+        _edge_func_div_2 = BDMEdgeFuncs._edge_func_div_two(quad_pair_lst[1][0][0],
+                                                           quad_pair_lst[1][0][1])
         _lagrange_2 = self._lagrange_edge_two(quad_pair_lst[1][1][0],
                                               quad_pair_lst[1][1][1])
+        _lagrange_grad_2 = self._lagrange_edge_two_grad(quad_pair_lst[1][1][0],
+                                                        quad_pair_lst[1][1][1])
+        
         f1_2 = lambda xi, eta: _lagrange_2(xi,eta)*_edge_func_2[0](xi,eta)
         f2_2 = lambda xi, eta: _lagrange_2(xi,eta)*_edge_func_2[1](xi,eta)
         edge_two_func.append(np.array([f1_2,f2_2]))
+        div_2 = ft.Operators.create_scalar_vector_div_func(_lagrange_2,
+                                                           _lagrange_grad_2,
+                                                           _edge_func_2,
+                                                           _edge_func_div_2)
+        edge_two_div_func.append(div_2)        
 
         _edge_func_3 = BDMEdgeFuncs._edge_func_two(quad_pair_lst[2][0][0],
                                                    quad_pair_lst[2][0][1])
+        _edge_func_div_3 = BDMEdgeFuncs._edge_func_div_two(quad_pair_lst[2][0][0],
+                                                           quad_pair_lst[2][0][1])
         _lagrange_3 = self._lagrange_edge_two(quad_pair_lst[2][1][0],
                                               quad_pair_lst[2][1][1])
+        _lagrange_grad_3 = self._lagrange_edge_two_grad(quad_pair_lst[2][1][0],
+                                                        quad_pair_lst[2][1][1])
+
         f1_3 = lambda xi, eta: _lagrange_3(xi,eta)*_edge_func_3[0](xi,eta)
         f2_3 = lambda xi, eta: _lagrange_3(xi,eta)*_edge_func_3[1](xi,eta)
         edge_two_func.append(np.array([f1_3,f2_3]))
-
-        return edge_two_func
+        div_3 = ft.Operators.create_scalar_vector_div_func(_lagrange_3,
+                                                           _lagrange_grad_3,
+                                                           _edge_func_3,
+                                                           _edge_func_div_3)
+        edge_two_div_func.append(div_3)
+        
+        return edge_two_func, edge_two_div_func
 
     def _get_edge_func_three(self,q0,q1,q2):
         quad_pair_lst = [((q0,q1) , (q0,q2)),
                          ((q1,q2) , (q1,q0)),
                          ((q2,q0) , (q2,q1))]
         edge_three_func = []
+        edge_three_div_func = []
 
         _edge_func_1 = BDMEdgeFuncs._edge_func_three(quad_pair_lst[0][0][0],
                                                      quad_pair_lst[0][0][1])
+        _edge_func_div_1 = BDMEdgeFuncs._edge_func_div_three(quad_pair_lst[0][0][0],
+                                                             quad_pair_lst[0][0][1])
         _lagrange_1 = self._lagrange_edge_three(quad_pair_lst[0][1][0],
                                                 quad_pair_lst[0][1][1])
+        _lagrange_grad_1 = self._lagrange_edge_three_grad(quad_pair_lst[0][1][0],
+                                                          quad_pair_lst[0][1][1])
+        
         f1_1 = lambda xi, eta: _lagrange_1(xi,eta)*_edge_func_1[0](xi,eta)
         f2_1 = lambda xi, eta: _lagrange_1(xi,eta)*_edge_func_1[1](xi,eta)
         edge_three_func.append(np.array([f1_1,f2_1]))
-
+        div_1 = ft.Operators.create_scalar_vector_div_func(_lagrange_1,
+                                                           _lagrange_grad_1,
+                                                           _edge_func_1,
+                                                           _edge_func_div_1)
+        edge_three_div_func.append(div_1)
+        
         _edge_func_2 = BDMEdgeFuncs._edge_func_three(quad_pair_lst[1][0][0],
                                                      quad_pair_lst[1][0][1])
+        _edge_func_div_2 = BDMEdgeFuncs._edge_func_div_three(quad_pair_lst[1][0][0],
+                                                             quad_pair_lst[1][0][1])
         _lagrange_2 = self._lagrange_edge_three(quad_pair_lst[1][1][0],
                                                 quad_pair_lst[1][1][1])
+        _lagrange_grad_2 = self._lagrange_edge_three_grad(quad_pair_lst[1][1][0],
+                                                          quad_pair_lst[1][1][1])
         f1_2 = lambda xi, eta: _lagrange_2(xi,eta)*_edge_func_2[0](xi,eta)
         f2_2 = lambda xi, eta: _lagrange_2(xi,eta)*_edge_func_2[1](xi,eta)
         edge_three_func.append(np.array([f1_2,f2_2]))
+        div_2 = ft.Operators.create_scalar_vector_div_func(_lagrange_2,
+                                                           _lagrange_grad_2,
+                                                           _edge_func_2,
+                                                           _edge_func_div_2)
+        edge_three_div_func.append(div_2)
 
         _edge_func_3 = BDMEdgeFuncs._edge_func_three(quad_pair_lst[2][0][0],
                                                      quad_pair_lst[2][0][1])
+        _edge_func_div_3 = BDMEdgeFuncs._edge_func_div_three(quad_pair_lst[2][0][0],
+                                                             quad_pair_lst[2][0][1])
         _lagrange_3 = self._lagrange_edge_three(quad_pair_lst[2][1][0],
                                                 quad_pair_lst[2][1][1])
+        _lagrange_grad_3 = self._lagrange_edge_three_grad(quad_pair_lst[2][1][0],
+                                                          quad_pair_lst[2][1][1])
+        
         f1_3 = lambda xi, eta: _lagrange_3(xi,eta)*_edge_func_3[0](xi,eta)
         f2_3 = lambda xi, eta: _lagrange_3(xi,eta)*_edge_func_3[1](xi,eta)
         edge_three_func.append(np.array([f1_3,f2_3]))
+        div_3 = ft.Operators.create_scalar_vector_div_func(_lagrange_3,
+                                                           _lagrange_grad_3,
+                                                           _edge_func_3,
+                                                           _edge_func_div_3)
+        edge_three_div_func.append(div_3)
 
-        return edge_three_func
+        return edge_three_func, edge_three_div_func
