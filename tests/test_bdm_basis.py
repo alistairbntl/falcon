@@ -238,6 +238,28 @@ def test_bdm_tens_basis_2():
             assert np.array_equal(vals['div'], vals_tens_2['div'][1])            
 
 @pytest.mark.bdm
+def test_bdm2_div_1(bdm2_edge_tests):
+    BDM2_basis, quadrature, reference_element = bdm2_edge_tests
+    edge_div_funcs = BDM2_basis.edge_functions.edge_div_funcs
+    assert abs(edge_div_funcs[0][0](1./3,1./3) - 0.7856742) < 1.0E-8
+    assert edge_div_funcs[0][0](1.,0,) < 1.0E-8
+    assert abs(edge_div_funcs[0][1](1./3,1./3) - 1.2570787221) < 1.0E-8
+    assert abs(edge_div_funcs[0][2](1./3,1./3) - 0.7856742) < 1.0E-8
+    assert abs(edge_div_funcs[0][2](.2,.6) - 2.874807049) < 1.0E-8
+    assert abs(edge_div_funcs[1][0](1./3,1./3) - 5./9) < 1.0E-8
+    assert abs(edge_div_funcs[1][0](0.2, 0.6) - 1.0) < 1.0E-8
+    assert abs(edge_div_funcs[1][1](1./3, 1./3) - 8./9) < 1.0E-8
+    assert abs(edge_div_funcs[1][1](0.2, 0.6) - 2.065591117978) < 1.0E-8
+    assert abs(edge_div_funcs[1][2](1./3,1./3) - 5./9) < 1.0E-8
+    assert abs(edge_div_funcs[1][2](0.2, 0.6) - 2.032795558988) < 1.0E-8
+    assert abs(edge_div_funcs[2][0](1./3,1./3) - 5./9) < 1.0E-8
+    assert abs(edge_div_funcs[2][0](.2, .6) - 1./3) < 1.0E-8
+    assert abs(edge_div_funcs[2][1](1./3,1./3) - 8./9) < 1.0E-8
+    assert abs(edge_div_funcs[2][1](.2,.6) - 0.3005377743) < 1.0E-8
+    assert abs(edge_div_funcs[2][2](1./3,1./3) - 5./9) < 1.0E-8
+    assert abs(edge_div_funcs[2][2](.2,.6) + 0.18306444616) < 1.0E-8    
+            
+@pytest.mark.bdm
 def test_P0_vec_basis_1():
     p0_vec_test_basis = bdm.P0VecBasis_2D()
     assert p0_vec_test_basis.get_num_dof() == 2
