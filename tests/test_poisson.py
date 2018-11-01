@@ -87,10 +87,10 @@ def poisson_fe_code(sim_info):
 
     global_matrix_assembler.solve(global_rhs, solution_vec)
 
-    solu_plot = ec.VisualizationHandler(mesh,dof_handler,basis[0],solution_vec)
-    solu_plot.output_nodal_solution('plot_test_1')
-
+@pytest.mark.skip
 def test_poisson():
+    # note - this test really doesn't test much because it
+    # does not have a true solution
     mesh = mt.StructuredMesh([2,2],0.0625)
     basis = [bdm.P1Basis_2D()]
     dof_handler = dof.DOFHandler(mesh, basis)
