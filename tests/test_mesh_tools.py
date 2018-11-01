@@ -74,11 +74,11 @@ def test_basic_mesh_1(basic_mesh):
     assert mesh.get_node(3)[0] ==1
     assert mesh.get_node(3)[1] ==1
     assert mesh.get_element(0).get_point(0).vals[0]==0.
-    assert mesh.get_element(0).get_point(0).vals[1]==1.
-    assert mesh.get_element(0).get_point(1).vals[0]==0.
+    assert mesh.get_element(0).get_point(0).vals[1]==0.
+    assert mesh.get_element(0).get_point(1).vals[0]==1.
     assert mesh.get_element(0).get_point(1).vals[1]==0.
-    assert mesh.get_element(0).get_point(2).vals[0]==1.
-    assert mesh.get_element(0).get_point(2).vals[1]==0.
+    assert mesh.get_element(0).get_point(2).vals[0]==0.
+    assert mesh.get_element(0).get_point(2).vals[1]==1.
 
 def test_basic_mesh_2(basic_mesh):
     mesh = basic_mesh
@@ -94,13 +94,13 @@ def test_basic_mesh_2(basic_mesh):
 def test_basic_mesh_3(basic_mesh):
     mesh = basic_mesh
     E0 = mesh.get_element(0)
-    assert E0.get_edge(0).get_global_idx() == 1
-    assert E0.get_edge(1).get_global_idx() == 2
-    assert E0.get_edge(2).get_global_idx() == 0    
+    assert E0.get_edge(0).get_global_idx() == 2
+    assert E0.get_edge(1).get_global_idx() == 0
+    assert E0.get_edge(2).get_global_idx() == 1    
     E1 = mesh.get_element(1)
     assert E1.get_edge(0).get_global_idx() == 4
-    assert E1.get_edge(1).get_global_idx() == 2
-    assert E1.get_edge(2).get_global_idx() == 3
+    assert E1.get_edge(1).get_global_idx() == 3
+    assert E1.get_edge(2).get_global_idx() == 2
 
 def test_basic_mesh_4(basic_mesh_2):
     mesh = basic_mesh_2
@@ -124,32 +124,32 @@ def test_basic_mesh_5(basic_mesh):
         return edge, element
 
     edge, n3 = get_test_info(0,0)
-    assert (0.0,1.0) == edge.get_unit_normal_vec()
-    assert (0.0,-1.0) == edge.get_outward_unit_normal_vec(n3)
-    assert False == edge.does_outward_normal_match_global_normal(n3)
-    edge, n3 = get_test_info(0,1)
     assert (1./math.sqrt(2),1./math.sqrt(2)) == edge.get_unit_normal_vec()
     assert (1./math.sqrt(2),1./math.sqrt(2)) == edge.get_outward_unit_normal_vec(n3)
-    assert True == edge.does_outward_normal_match_global_normal(n3)    
-    edge, n3 = get_test_info(0,2)
+    assert True == edge.does_outward_normal_match_global_normal(n3)
+    edge, n3 = get_test_info(0,1)
     assert (1.0,0.0) == edge.get_unit_normal_vec()
     assert (-1.0,0.0) == edge.get_outward_unit_normal_vec(n3)
+    assert False == edge.does_outward_normal_match_global_normal(n3)    
+    edge, n3 = get_test_info(0,2)
+    assert (0.0,1.0) == edge.get_unit_normal_vec()
+    assert (0.0,-1.0) == edge.get_outward_unit_normal_vec(n3)
     assert False == edge.does_outward_normal_match_global_normal(n3)
     edge, n3 = get_test_info(1,0)
     assert (0.0,1.0) == edge.get_unit_normal_vec()
     assert (0.0,1.0) == edge.get_outward_unit_normal_vec(n3)
-    assert True == edge.does_outward_normal_match_global_normal(n3)    
+    assert True == edge.does_outward_normal_match_global_normal(n3)
     edge, n3 = get_test_info(1,1)
+    assert (1.0,0.0) == edge.get_unit_normal_vec()
+    assert (1.0,0.0) == edge.get_outward_unit_normal_vec(n3)
+    assert True == edge.does_outward_normal_match_global_normal(n3)    
+    edge, n3 = get_test_info(1,2)
     assert (1./math.sqrt(2),1./math.sqrt(2)) == edge.get_unit_normal_vec()
     assert (-1./math.sqrt(2),-1./math.sqrt(2)) == edge.get_outward_unit_normal_vec(n3)
     assert False == edge.does_outward_normal_match_global_normal(n3)    
-    edge, n3 = get_test_info(1,2)
-    assert (1.0,0.0) == edge.get_unit_normal_vec()
-    assert (1.0,0.0) == edge.get_outward_unit_normal_vec(n3)
-    assert True == edge.does_outward_normal_match_global_normal(n3)
 
 def test_struc_mesh_1():
-    mesh = mt.StructuredMesh([1,1],0.2)
+    mesh = mt.StructuredMesh([1,1],0.25)
     assert mesh.get_node(0)[0] == 0.0 and mesh.get_node(0)[1] == 0.0
     assert mesh.get_node(0).bdy_flag == 1
     assert mesh.get_node(1)[0] == 0.25 and mesh.get_node(1)[1] == 0.0
