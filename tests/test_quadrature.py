@@ -35,13 +35,13 @@ def test_quad_on_element_2(basic_mesh):
         mapping = mp.ReferenceElementMap(mesh_element)
         ele_quad = quadrature.get_quad_pts_on_element(mapping)
         if i==0:
-            assert abs(ele_quad[0][0]-1./3.) < 1.0E-12
-            assert abs(ele_quad[0][1]-1./3.) < 1.0E-12
-            assert abs(ele_quad[0].get_quad_weight() + 27./96.) < 1.0E-12
+            assert abs(ele_quad[0][0]-0.) < 1.0E-12
+            assert abs(ele_quad[0][1]-1./2) < 1.0E-12
+            assert abs(ele_quad[0].get_quad_weight() - 1./6) < 1.0E-12
         if i==1:
-            assert abs(ele_quad[0][0]-2./3.) < 1.0E-12
-            assert abs(ele_quad[0][1]-2./3.) < 1.0E-12
-            assert abs(ele_quad[0].get_quad_weight() + 27./96.) < 1.0E-1
+            assert abs(ele_quad[0][0]-1.) < 1.0E-12
+            assert abs(ele_quad[0][1]-1./2) < 1.0E-12
+            assert abs(ele_quad[0].get_quad_weight() - 1./6) < 1.0E-12
 
 def test_bdy_quad_1():
     quadrature = quad.Quadrature(3)

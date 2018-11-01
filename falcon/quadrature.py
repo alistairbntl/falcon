@@ -30,19 +30,12 @@ class Quadrature():
 
             self.edge_quad_pt = [0.5 - math.sqrt(3) / 6.,
                                  0.5 + math.sqrt(3) / 6.]
+
             self.edge_quad_wght = [0.5, 0.5]            
 
             self._element_quad_pts = [mt.QuadraturePoint(0.,1/2., 1/6.),
                                       mt.QuadraturePoint(1/2.,0., 1/6.),
-                                      mt.QuadraturePoint(1/2.,1/2., 1/6.)]
-            
-            # self._element_quad_pts = [mt.QuadraturePoint(0.659027622374092, 0.231933368553031, 1./12.),
-            #                           mt.QuadraturePoint(0.659027622374092, 0.109039009072877, 1./12.),
-            #                           mt.QuadraturePoint(0.231933368553031, 0.659027622374092, 1./12.),
-            #                           mt.QuadraturePoint(0.231933368553031, 0.109039009072877, 1./12.),
-            #                           mt.QuadraturePoint(0.109039009072877, 0.659027622374092, 1./12.),
-            #                           mt.QuadraturePoint(0.109039009072877, 0.231933368553031, 1./12.)]
-            
+                                      mt.QuadraturePoint(1/2.,1/2., 1/6.)]            
 
         if self.n==3:
             self.edge_quad_pt = [0.5 - math.sqrt(15)/10.,
@@ -52,7 +45,21 @@ class Quadrature():
             self._element_quad_pts = [mt.QuadraturePoint(1./3., 1./3., -27/96.),
                                       mt.QuadraturePoint(1./5., 3./5., 25/96.),
                                       mt.QuadraturePoint(1./5., 1./5., 25/96.),
-                                      mt.QuadraturePoint(3./5., 1./5., 25/96.)]            
+                                      mt.QuadraturePoint(3./5., 1./5., 25/96.)]
+
+        if self.n==4:
+            # ARB - this has not been tested at all!
+            self.edge_quad_pt = [0.5 - math.sqrt(15)/10.,
+                                 0.5,
+                                 0.5 + math.sqrt(15)/10.]
+            self.edge_quad_wght = [5./18., 8./18., 5./18.]
+            self._element_quad_pts = [mt.QuadraturePoint(0.659027622374092, 0.231933368553031, 1./12.),
+                                      mt.QuadraturePoint(0.659027622374092, 0.109039009072877, 1./12.),
+                                      mt.QuadraturePoint(0.231933368553031, 0.659027622374092, 1./12.),
+                                      mt.QuadraturePoint(0.231933368553031, 0.109039009072877, 1./12.),
+                                      mt.QuadraturePoint(0.109039009072877, 0.659027622374092, 1./12.),
+                                      mt.QuadraturePoint(0.109039009072877, 0.231933368553031, 1./12.)]
+            
         else:
             pass
 
