@@ -323,5 +323,56 @@ def test_P0_vec_basis_2():
                                                             mapping,
                                                             val_types)
             assert np.array_equal(vals['vals'], -1*vals_vec_1['vals'][0][1])
-            assert np.array_equal(vals['vals'], vals_vec_1['vals'][1][0])            
+            assert np.array_equal(vals['vals'], vals_vec_1['vals'][1][0])
 
+def test_P0_vec_basis_2():
+    p1_vec_test_basis = bdm.P1SkewTensBasis_2D() ; p1_basis = bdm.P1Basis_2D()
+
+    p1 = mt.Point(1.,0.) ; p2 = mt.Point(1.,1.) ; p3 = mt.Point(0.5,0.5)
+    element = mt.Element([p1,p2,p3])
+    mapping = mpt.ReferenceElementMap(element)
+    quadrature = quad.Quadrature(1)    
+    val_types = ['vals']
+
+    for i in range(p1_basis.get_num_dof()):
+        for pt in quadrature.get_element_quad_pts():
+            vals = p1_basis.get_element_vals(i,
+                                             pt,
+                                             mapping,
+                                             val_types)
+            vals_vec_1 = p1_vec_test_basis.get_element_vals(i,
+                                                            pt,
+                                                            mapping,
+                                                            val_types)
+            assert abs(vals['vals'] + vals_vec_1['vals'][0][1]) < 1e-12
+            assert abs(vals['vals'] - vals_vec_1['vals'][1][0]) < 1e-12
+
+def test_BDM2_tens_basis_1():
+    bdm2_tens_basis = bdm.BDMTensBasis(2) ; bdm2_basis = bdm.BDMBasis(2)
+    
+    p1 = mt.Point(1.,0.) ; p2 = mt.Point(1.,1.) ; p3 = mt.Point(0.5,0.5)
+    element = mt.Element([p1,p2,p3])
+    mapping = mpt.ReferenceElementMap(element)
+    quadrature = quad.Quadrature(1)    
+    val_types = ['vals']
+
+    assert bdm2_tens_basis.get_num_dof() == 24
+
+    for i in range(bdm2_basis.get_num_dof()):
+        j = i / 3 ; k = i % 3
+        for pt in quadrature.get_element_quad_pts():
+            vals = bdm2_basis.get_element_vals(i,
+                                               pt,
+                                               mapping,
+                                               val_types)
+            vals_tens_1 = bdm2_tens_basis.get_element_vals(6*j+k,
+                                                           pt,
+                                                           mapping,
+                                                           val_types)
+            vals_tens_2 = bdm2_tens_basis.get_element_vals(6*j+k + 3,
+                                                           pt,
+                                                           mapping,
+                                                           val_types)
+            assert np.array_equal(vals['vals'], vals_tens_1['vals'][0])
+            assert np.array_equal(vals['vals'], vals_tens_2['vals'][1])            
+            

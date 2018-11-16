@@ -1,4 +1,5 @@
 import numpy as np
+import copy
 import math
 
 import quadrature as quad
@@ -115,8 +116,7 @@ class P0Basis_2D(Basis):
             self._set_basis_lst()
             basis_func = self._basis_lst
         return basis_func
-    
-        
+
     def get_num_dof(self):
         return 1
 
@@ -197,6 +197,60 @@ class P0SkewTensBasis_2D(Basis):
     def get_num_dof_per_node(self):
         return self.P0_basis_2D.get_num_dof_per_node()
 
+class P1SkewTensBasis_2D(Basis):
+
+    def __init__(self):
+        super(P1SkewTensBasis_2D,self).__init__()
+        self.set_degree(1)
+        self.P1_basis_2D = P1Basis_2D()
+        self._set_local_function_dispatcher()
+
+    def _set_local_function_dispatcher(self):
+        local_functions = {'vals' : self.get_func_val}
+        self._function_dispatcher.update(local_functions)
+
+    def get_func_val(self,
+                     basis_func_idx,
+                     quad_pt,
+                     mapping):
+        basis_func = self.get_basis_func(basis_func_idx)
+        xi = quad_pt[0] ; eta = quad_pt[1]
+        f00 = basis_func[0][0](xi, eta) ; f01 = -1*basis_func[0][1](xi, eta)
+        f10 = basis_func[1][0](xi, eta) ; f11 = basis_func[1][1](xi, eta)
+        return np.array([[f00, f01],[f10, f11]])
+
+    def _set_basis_lst(self):
+        if self.get_degree() == 1:
+            basis_lst = self.P1_basis_2D.get_basis_func_lst()
+            zero_func = lambda x,y : 0.
+            self._p1_skewtens_lst = []
+            for basis_ele in basis_lst:
+                #ARB note - the minus sign is added in get_func_val
+                self._p1_skewtens_lst.append(np.array([[zero_func, basis_ele],[basis_ele, zero_func]]))
+
+    def get_basis_func(self,idx):
+        try:
+            basis_func = self._p1_skewtens_lst[idx]
+        except AttributeError:
+            self._set_basis_lst()
+            basis_func = self._p1_skewtens_lst[idx]
+        return basis_func
+
+    def get_name(self):
+        return "p1_skewtens_basis"
+        
+    def get_num_dof(self):
+        return self.P1_basis_2D.get_num_dof()
+
+    def get_num_interior_dof(self):
+        return self.P1_basis_2D.get_num_interior_dof()
+
+    def get_num_dof_per_edge(self):
+        return self.P1_basis_2D.get_num_dof_per_edge()
+
+    def get_num_dof_per_node(self):
+        return self.P1_basis_2D.get_num_dof_per_node()
+    
 class P0VecBasis_2D(Basis):
 
     def __init__(self):
@@ -281,6 +335,9 @@ class P1Basis_2D(Basis):
         x, y = mapping.apply_inv_transpose_jacobian_mat(xi,eta)
         return x, y
 
+    def get_basis_func_lst(self):
+        return self._basis_funcs
+    
     def get_basis_func(self, idx):
         return self._basis_funcs[idx]
 
@@ -294,13 +351,13 @@ class P1Basis_2D(Basis):
         return 3
 
     def get_num_interior_dof(self):
-        return 0
+        return 3
 
     def get_num_dof_per_edge(self):
         return 0
 
     def get_num_dof_per_node(self):
-        return 1
+        return 0
 
     def _initialize_element_functions(self):
         self._basis_funcs = [lambda xi, eta: 1 - xi - eta,
@@ -316,6 +373,59 @@ class P1Basis_2D(Basis):
 
     def get_func_grad(self,dof_num):
         return self.basis_funcs_grad[dof_num]
+
+class P1VecBasis_2D(Basis):
+
+    def __init__(self):
+        super(P1VecBasis_2D,self).__init__()
+        self.set_degree(1)
+        self.P1_basis_2D = P1Basis_2D()
+        self._set_local_function_dispatcher()
+
+    def _set_local_function_dispatcher(self):
+        local_functions = {'vals' : self.get_func_val}
+        self._function_dispatcher.update(local_functions)
+
+    def get_func_val(self,
+                     basis_func_idx,
+                     quad_pt,
+                     mapping):
+        basis_func = self.get_basis_func(basis_func_idx)
+        xi = quad_pt[0] ; eta = quad_pt[1]
+        f1 = basis_func[0](xi, eta) ; f2 = basis_func[1](xi, eta)
+        return np.array([f1, f2])
+        
+    def _set_basis_lst(self):
+        if self.get_degree() == 1:
+            basis_lst = self.P1_basis_2D.get_basis_func_lst()
+            zero_fun = lambda x,y : 0.
+            self._p1_vec_lst = []
+            for basis_ele in basis_lst:
+                self._p1_vec_lst.append(np.array([basis_ele,zero_fun]))
+                self._p1_vec_lst.append(np.array([zero_fun,basis_ele]))
+
+    def get_basis_func(self,idx):
+        try:
+            basis_func = self._p1_vec_lst[idx]
+        except AttributeError:
+            self._set_basis_lst()
+            basis_func = self._p1_vec_lst[idx]
+        return basis_func
+
+    def get_name(self):
+        return "p1_vec_basis"
+        
+    def get_num_dof(self):
+        return 2*self.P1_basis_2D.get_num_dof()
+
+    def get_num_interior_dof(self):
+        return 2*self.P1_basis_2D.get_num_interior_dof()
+
+    def get_num_dof_per_edge(self):
+        return 2*self.P1_basis_2D.get_num_dof_per_edge()
+
+    def get_num_dof_per_node(self):
+        return 2*self.P1_basis_2D.get_num_dof_per_node()
     
 class BDMTensBasis(Basis):
 
@@ -386,28 +496,55 @@ class BDMTensBasis(Basis):
         return 2*self.bdm_basis.get_num_dof_per_node()
 
     def _set_basis_lst(self):
+        basis_lst = self.bdm_basis.get_basis_func_lst()            
+        self._bdm_tens_lst = [None]*2*len(basis_lst)
+        zero_fun = lambda x,y : 0.
         if self.get_degree() == 1:
-            basis_lst = self.bdm_basis.get_basis_func_lst()            
-            self._bdm_tens_lst = [None]*2*len(basis_lst)
-            zero_fun = lambda x,y : 0.
-            for i,basis_ele in enumerate(basis_lst):
+            for i, basis_ele in enumerate(basis_lst):
                 j = i / 3
                 k = i % 3
                 a_tmp = [basis_ele[0], basis_ele[1]]
                 b_tmp = [zero_fun, zero_fun]
                 self._bdm_tens_lst[6*j + k] = np.array([a_tmp,b_tmp])
-                self._bdm_tens_lst[6*j + k + 3] = (np.array([b_tmp,a_tmp]))
+                self._bdm_tens_lst[6*j + k + 3] = np.array([b_tmp,a_tmp])
+        elif self.get_degree() == 2:
+            for i, basis_ele in enumerate(basis_lst[0:9]):
+                j = i / 3
+                k = i % 3
+                a_tmp = [basis_ele[0], basis_ele[1]]
+                b_tmp = [zero_fun, zero_fun]
+                self._bdm_tens_lst[6*j + k] = np.array([a_tmp,b_tmp])
+                self._bdm_tens_lst[6*j + k + 3] = np.array([b_tmp,a_tmp])
+            for i, basis_ele in enumerate(basis_lst[9:12]):
+                j = (i+9) / 3
+                k = (i+9) % 3
+                a_tmp = [basis_ele[0], basis_ele[1]]
+                b_tmp = [zero_fun, zero_fun]
+                self._bdm_tens_lst[6*j + 2*k] = np.array([a_tmp,b_tmp])
+                self._bdm_tens_lst[6*j + 2*k + 1] = np.array([b_tmp,a_tmp])
+                x = 0.6590276 ; y = 0.2319333
 
     def _set_basis_div_lst(self):
+        basis_div_lst = self.bdm_basis.get_basis_div_func_lst()
+        self._basis_div_lst = [None]*2*len(basis_div_lst)
+        zero_func = lambda x,y : 0.
         if self.get_degree() == 1:
-            basis_div_lst = self.bdm_basis.get_basis_div_func_lst()
-            self._basis_div_lst = [None]*2*len(basis_div_lst)
-            zero_func = lambda x,y : 0.
-            for i,basis_div_func in enumerate(basis_div_lst):
+            for i, basis_div_func in enumerate(basis_div_lst):
+                j = i / 3
+                k = i % 3
+                self._basis_div_lst[6*j + k] = np.array([basis_div_func, zero_func])
+                self._basis_div_lst[6*j + k + 3] = np.array([zero_func , basis_div_func])
+        elif self.get_degree() == 2:
+            for i, basis_div_func in enumerate(basis_div_lst[0:9]):
                 j = i / 3
                 k = i % 3
                 self._basis_div_lst[6*j + k] = np.array([basis_div_func , zero_func])
                 self._basis_div_lst[6*j + k + 3] = np.array([zero_func , basis_div_func])
+            for i, basis_div_func in enumerate(basis_div_lst[9:12]):
+                j = (i+9) / 3
+                k = (i+9) % 3
+                self._basis_div_lst[6*j + 2*k] = np.array([basis_div_func, zero_func])
+                self._basis_div_lst[6*j + 2*k + 1] = np.array([zero_func , basis_div_func])
 
     def get_basis_func(self,idx):
         try:
@@ -471,6 +608,8 @@ class BDMBasis(Basis):
                                int_func[0],
                                int_func[1],
                                int_func[2]]
+            x = 0.659027622 ; y = 0.23193336855
+#            import pdb ; pdb.set_trace()
 
     def _set_basis_div_lst(self):
         if self.get_degree() == 1:

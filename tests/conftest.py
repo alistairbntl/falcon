@@ -123,19 +123,13 @@ def basic_mesh_2_BDM1():
 @pytest.fixture(scope='module')
 def basic_mesh_bdm1_p0():
     test_mesh = 'test_mesh.1'
+#    test_mesh = 'refine_mesh.2'
     mesh = mt.Mesh(test_mesh)
     basis = [bdm.BDMBasis(1), bdm.P0Basis_2D()]
     dof_handler = dof.DOFHandler(mesh,
                                  basis)
     yield basis, mesh, dof_handler
-
-@pytest.fixture(scope='module')
-def basis_mesh_elasticity_bdm1_p0():
-    test_mesh = 'test_mesh.1'
-    mesh = mt.Mesh(test_mesh)
-    basis = [bdm.BDMBasis(1), bdm.BDMBasis(1),
-             bdm.P0Basis_2D(), bdm.P0Basis_2D()]
-
+    
 @pytest.fixture(scope='module')
 def basic_mesh_s1_p1():
     test_mesh = 'test_struc_mesh.2'
@@ -165,7 +159,7 @@ def basic_mesh_s1_bdm2_partial_r1():
 
 @pytest.fixture(scope='module')
 def basic_mesh_s1_bdm1_partial_r2():
-    test_mesh = 'test_struc_mesh.2'
+    test_mesh = 'refine_mesh.2'
     mesh = mt.Mesh(test_mesh)
     basis = [bdm.BDMBasis(1)]
     dof_handler = dof.DOFHandler(mesh,
@@ -174,7 +168,7 @@ def basic_mesh_s1_bdm1_partial_r2():
 
 @pytest.fixture(scope='module')
 def basic_mesh_s1_bdm2_partial_r2():
-    test_mesh = 'test_struc_mesh.2'
+    test_mesh = 'refine_mesh.2'
     mesh = mt.Mesh(test_mesh)
     basis = [bdm.BDMBasis(2)]
     dof_handler = dof.DOFHandler(mesh,
@@ -201,7 +195,7 @@ def basic_mesh_s1_bdm2_p1():
 
 @pytest.fixture(scope='module')
 def basic_mesh_s1_bdm1_p0_tmp1():
-    test_mesh = 'refine_mesh.1'
+    test_mesh = 'refine_mesh.3'
     mesh = mt.Mesh(test_mesh)
     basis = [bdm.BDMBasis(1), bdm.P0Basis_2D()]
     dof_handler = dof.DOFHandler(mesh,
@@ -285,6 +279,72 @@ def basic_mesh_bdm1_p0_elasticity():
     yield basis, mesh, dof_handler
 
 @pytest.fixture(scope='module')
+def elasticity_bdm1_p0_structured():
+    mesh = mt.StructuredMesh([1.,1.],1./10)
+    basis = [bdm.BDMTensBasis(1),
+             bdm.P0VecBasis_2D(),
+             bdm.P0SkewTensBasis_2D()]         
+    dof_handler = dof.DOFHandler(mesh,
+                                 basis)
+    yield basis, mesh, dof_handler
+
+@pytest.fixture(scope='module')
+def elasticity_bdm1_partial():
+    mesh = mt.StructuredMesh([1.,1.],1./8)
+    basis = [bdm.BDMTensBasis(1),
+             bdm.P0SkewTensBasis_2D()]
+    dof_handler = dof.DOFHandler(mesh,
+                                 basis)
+    yield basis, mesh, dof_handler
+
+@pytest.fixture(scope='module')
+def elasticity_bdm2_partial():
+    mesh = mt.StructuredMesh([1.,1.],1.)
+    basis = [bdm.BDMTensBasis(2),
+             bdm.P1SkewTensBasis_2D()]
+    dof_handler = dof.DOFHandler(mesh,
+                                 basis)
+    yield basis, mesh, dof_handler
+
+@pytest.fixture(scope='module')
+def elasticity_bdm2_partial_one_element():
+    mesh = mt.OneElementMesh()
+    basis = [bdm.BDMTensBasis(2),
+             bdm.P1SkewTensBasis_2D()]
+    dof_handler = dof.DOFHandler(mesh,
+                                 basis)
+    yield basis, mesh, dof_handler
+
+@pytest.fixture(scope='module')
+def elasticity_bdm2():
+    mesh = mt.StructuredMesh([1.,1.],1./6)
+    basis = [bdm.BDMTensBasis(2),
+             bdm.P1VecBasis_2D(),
+             bdm.P1SkewTensBasis_2D()]
+    dof_handler = dof.DOFHandler(mesh,
+                                 basis)
+    yield basis, mesh, dof_handler
+    
+@pytest.fixture(scope='module')
+def elasticity_bdm2_one_element():
+    mesh = mt.OneElementMesh()
+    basis = [bdm.BDMTensBasis(2),
+             bdm.P1VecBasis_2D(),
+             bdm.P1SkewTensBasis_2D()]
+    dof_handler = dof.DOFHandler(mesh,
+                                 basis)
+    yield basis, mesh, dof_handler
+    
+@pytest.fixture(scope='module')
+def darcy_bdm2_partial_one_element():
+    mesh = mt.OneElementMesh()
+    basis = [bdm.BDMBasis(2),
+             bdm.P1Basis_2D()]
+    dof_handler = dof.DOFHandler(mesh,
+                                 basis)
+    yield basis, mesh, dof_handler
+    
+@pytest.fixture(scope='module')
 def basic_mesh2_bdm1_p0_elasticity():
     test_mesh = 'convergence_test_meshes/convergence_mesh_2'
     mesh = mt.Mesh(test_mesh)
@@ -306,8 +366,42 @@ def basic_mesh2_bdm1_partial_elasticity():
     yield basis, mesh, dof_handler
 
 @pytest.fixture(scope='module')
+def darcy_bdm2_p1_converge_2():
+    test_mesh = 'convergence_test_meshes/new_convergence_mesh.1'
+    mesh = mt.Mesh(test_mesh)
+    basis = [bdm.BDMBasis(2), bdm.P1Basis_2D()]
+    dof_handler = dof.DOFHandler(mesh,
+                                 basis)
+    yield basis, mesh, dof_handler
+
+@pytest.fixture(scope='module')
+def darcy_bdm2_p1_structured_converge_1():
+    mesh = mt.StructuredMesh([1.,1.],1./12)
+    basis = [bdm.BDMBasis(2), bdm.P1Basis_2D()]
+    dof_handler = dof.DOFHandler(mesh,
+                                 basis)
+    yield basis, mesh, dof_handler
+
+@pytest.fixture(scope='module')
+def darcy_bdm1_p0_structured_converge_1():
+    mesh = mt.StructuredMesh([1.,1.],1./12)
+    basis = [bdm.BDMBasis(1), bdm.P0Basis_2D()]
+    dof_handler = dof.DOFHandler(mesh,
+                                 basis)
+    yield basis, mesh, dof_handler
+
+@pytest.fixture(scope='module')
+def darcy_bdm1_p0_converge_1():
+    test_mesh = 'convergence_test_meshes/new_convergence_mesh.1'
+    mesh = mt.Mesh(test_mesh)
+    basis = [bdm.BDMBasis(1), bdm.P0Basis_2D()]
+    dof_handler = dof.DOFHandler(mesh,
+                                 basis)
+    yield basis, mesh, dof_handler
+
+@pytest.fixture(scope='module')
 def darcy_bdm1_p0_converge_2():
-    test_mesh = 'convergence_test_meshes/convergence_mesh_2'
+    test_mesh = 'convergence_test_meshes/new_convergence_mesh.2'
     mesh = mt.Mesh(test_mesh)
     basis = [bdm.BDMBasis(1), bdm.P0Basis_2D()]
     dof_handler = dof.DOFHandler(mesh,
@@ -316,7 +410,7 @@ def darcy_bdm1_p0_converge_2():
 
 @pytest.fixture(scope='module')
 def darcy_bdm1_p0_converge_3():
-    test_mesh = 'convergence_test_meshes/convergence_mesh_3'
+    test_mesh = 'convergence_test_meshes/new_convergence_mesh.3'
     mesh = mt.Mesh(test_mesh)
     basis = [bdm.BDMBasis(1), bdm.P0Basis_2D()]
     dof_handler = dof.DOFHandler(mesh,
@@ -325,7 +419,7 @@ def darcy_bdm1_p0_converge_3():
 
 @pytest.fixture(scope='module')
 def darcy_bdm1_p0_converge_4():
-    test_mesh = 'convergence_test_meshes/convergence_mesh_4'
+    test_mesh = 'convergence_test_meshes/new_convergence_mesh.4'
     mesh = mt.Mesh(test_mesh)
     basis = [bdm.BDMBasis(1), bdm.P0Basis_2D()]
     dof_handler = dof.DOFHandler(mesh,
@@ -334,19 +428,9 @@ def darcy_bdm1_p0_converge_4():
 
 @pytest.fixture(scope='module')
 def darcy_bdm1_p0_converge_5():
-    test_mesh = 'convergence_test_meshes/convergence_mesh_5'
+    test_mesh = 'convergence_test_meshes/new_convergence_mesh.5'
     mesh = mt.Mesh(test_mesh)
     basis = [bdm.BDMBasis(1), bdm.P0Basis_2D()]
     dof_handler = dof.DOFHandler(mesh,
                                  basis)
     yield basis, mesh, dof_handler
-
-@pytest.fixture(scope='module')
-def darcy_bdm2_p1_converge_2():
-    test_mesh = 'convergence_test_meshes/convergence_mesh_2'
-    mesh = mt.Mesh(test_mesh)
-    basis = [bdm.BDMBasis(2), bdm.P1Basis_2D()]
-    dof_handler = dof.DOFHandler(mesh,
-                                 basis)
-    yield basis, mesh, dof_handler
-

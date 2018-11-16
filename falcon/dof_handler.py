@@ -70,6 +70,7 @@ class DOFHandler():
                                      + self.get_num_edge_dof_basis(basis)
                                      + i*num_mesh_elements
                                      + cur_element.get_global_idx())
+
                     self._set_l2g_map(element_idx,
                                       dof_idx,
                                       global_idx + translation_factor)

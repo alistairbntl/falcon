@@ -135,7 +135,6 @@ def test_mixed_assembly_1(basic_mesh_bdm1_p0):
                 ele_quad_pt = quadrature.get_quad_on_element(piola_map,
                                                              quad_pt)
                 vals = forcing_function.get_f_eval(ele_quad_pt)
-                hs = (la.Operators.dot_product(vals, val_dic_test['Jt_vals']) * (1./val_dic_test['|Jt|']))
                 int_val = (la.Operators.dot_product(vals,
                                                     val_dic_test['Jt_vals'])
                            * (1./val_dic_test['|Jt|'])
@@ -225,7 +224,7 @@ def test_mixed_assembly_1(basic_mesh_bdm1_p0):
 
     global_matrix_assembler.initialize_sparse_matrix()
     global_matrix_assembler.set_csr_rep()
-    
+
     assert abs(global_matrix_assembler._coo.toarray()[2][2] - 2./3.) < 1.0E-12
     assert abs(global_matrix_assembler._coo.toarray()[2][10] + math.sqrt(2)/2.) < 1.0E-12
     assert abs(global_matrix_assembler._coo.toarray()[2][11] - math.sqrt(2)/2.) < 1.0E-12    
@@ -262,7 +261,7 @@ def test_mixed_assembly_1(basic_mesh_bdm1_p0):
     # assert np.allclose(expected_sol,solution_vec.get_solution())
 
     error_calculator = ec.DarcyErrorHandler(mesh,dof_handler,[basis[0]],solution_vec)
-    l2_vel_error = error_calculator.calculate_vel_error(true_solution)
+    l2_vel_error = error_calculator.calculate_l2_vel_error(true_solution)
 
     # assert abs(l2_vel_error - xxx) < 1.0E-6
 
@@ -345,7 +344,7 @@ def test_mixed_assembly_4(basic_mesh_s1_bdm1_partial_r1):
 
     error_calculator = ec.DarcyErrorHandler(mesh,dof_handler,[basis[0]],solution_vec)
 
-    l2_vel_error = error_calculator.calculate_vel_error(true_vel)
+    l2_vel_error = error_calculator.calculate_l2_vel_error(true_vel)
     assert abs(l2_vel_error) < 1.0e-12
 
 def test_mixed_assembly_2(basic_mesh_s1_bdm1_p0):
@@ -382,7 +381,7 @@ def test_mixed_assembly_2(basic_mesh_s1_bdm1_p0):
                                     lambda x,y: x + x**2 - 0.5*y**2 + 3))    
 
     test_space = basis ; trial_space = basis
-    quadrature = quad.Quadrature(3)
+    quadrature = quad.Quadrature(4)
     reference_element = mt.ReferenceElement()
 
     num_mesh_elements = mesh.get_num_mesh_elements()
@@ -511,7 +510,7 @@ def test_mixed_assembly_2(basic_mesh_s1_bdm1_p0):
     global_matrix_assembler.solve(global_rhs, solution_vec)
 
     error_calculator = ec.DarcyErrorHandler(mesh,dof_handler,[basis[0]],solution_vec)
-    l2_vel_error = error_calculator.calculate_vel_error(true_solution)
+    l2_vel_error = error_calculator.calculate_l2_vel_error(true_solution)
     assert abs(l2_vel_error - 0.54263175) < 1.0E-8
 
 def test_mixed_assembly_3(basic_mesh_s1_bdm1_p0_tmp):
@@ -662,7 +661,7 @@ def test_mixed_assembly_3(basic_mesh_s1_bdm1_p0_tmp):
 
     error_calculator = ec.DarcyErrorHandler(mesh,dof_handler,[basis[0]],solution_vec)
 
-    l2_vel_error = error_calculator.calculate_vel_error(true_solution)
+    l2_vel_error = error_calculator.calculate_l2_vel_error(true_solution)
     
     assert abs(l2_vel_error - 0) < 1e-12
 
@@ -736,9 +735,6 @@ def test_mixed_assembly_5(basic_mesh_s1_bdm1_partial_r2):
                     int_val = (la.Operators.dot_product(val_dic_trial['Jt_vals'],
                                                         val_dic_test['Jt_vals']) *
                                (1./val_dic_test['|Jt|']) * val_dic_test['quad_wght'])
-                    if (eN==3 and i==0):
-                        a0 = val_dic_test['Jt_vals'][0]*(1./val_dic_test['|Jt|'])
-                        a1 = val_dic_test['Jt_vals'][1]*(1./val_dic_test['|Jt|'])
                     local_matrix_assembler.add_val(i,j,int_val)
 
         local_matrix_assembler.distribute_local_2_global(eN)
@@ -765,7 +761,7 @@ def test_mixed_assembly_5(basic_mesh_s1_bdm1_partial_r2):
 
     error_calculator = ec.DarcyErrorHandler(mesh,dof_handler,[basis[0]],solution_vec)
 
-    l2_vel_error = error_calculator.calculate_vel_error(true_vel)
+    l2_vel_error = error_calculator.calculate_l2_vel_error(true_vel)
     assert abs(l2_vel_error) < 1.0e-12
 
 def test_mixed_bdm2_assembly_4(basic_mesh_s1_bdm2_partial_r1):
@@ -844,13 +840,13 @@ def test_mixed_bdm2_assembly_4(basic_mesh_s1_bdm2_partial_r1):
     global_matrix_assembler.set_csr_rep()
 
     global_matrix_assembler.solve(global_rhs, solution_vec)
+    import pdb ; pdb.set_trace()
 
     error_calculator = ec.DarcyErrorHandler(mesh,dof_handler,[basis[0]],solution_vec)
 
-    l2_vel_error = error_calculator.calculate_vel_error(true_vel)
+    l2_vel_error = error_calculator.calculate_l2_vel_error(true_vel)
     assert abs(l2_vel_error) < 1.0e-12
 
-@pytest.mark.now1
 def test_mixed_bdm2_assembly_4(basic_mesh_s1_bdm2_partial_r1):
     basis, mesh, dof_handler = basic_mesh_s1_bdm2_partial_r1
 
@@ -930,16 +926,12 @@ def test_mixed_bdm2_assembly_4(basic_mesh_s1_bdm2_partial_r1):
 
     error_calculator = ec.DarcyErrorHandler(mesh,dof_handler,[basis[0]],solution_vec)
 
-    l2_vel_error = error_calculator.calculate_vel_error(true_vel)
+    l2_vel_error = error_calculator.calculate_l2_vel_error(true_vel)
     assert abs(l2_vel_error) < 1.0e-12
 
 @pytest.mark.now
 def test_mixed_bdm2_assembly_2(basic_mesh_s1_bdm2_p1):
     basis, mesh, dof_handler = basic_mesh_s1_bdm2_p1
-    # assert np.array_equal(dof_handler._l2g_map[0], [1, 2, 0, 9, 10, 8, 16])
-    # assert np.array_equal(dof_handler._l2g_map[1], [5.,4.,3.,13.,12.,11.,17])
-    # assert np.array_equal(dof_handler._l2g_map[2], [1.,5.,6.,9.,13.,14.,18])
-    # assert np.array_equal(dof_handler._l2g_map[3], [2.,4.,7.,10.,12.,15.,19])
 
     num_local_dof = sum([a.get_num_dof() for a in basis])
 #    assert num_local_dof == 7
@@ -960,15 +952,17 @@ def test_mixed_bdm2_assembly_2(basic_mesh_s1_bdm2_p1):
 
     fx = lambda x,y : x*y - y**2
     fy = lambda x,y : x + x**2 - 0.5*y**2
+    axi_div_u = lambda x, y: 0.
     p = lambda x,y : 2*x + 3*y - 3./2.
-    true_solution = ft.TrueSolution([fx,fy,p])
+    true_solution = ft.TrueSolution([fx,fy,p],
+                                    [axi_div_u])
     dirichlet_forcing_function = ft.Function((lambda x,y: x*y - y**2,
                                               lambda x,y: x + x**2 - 0.5*y**2))
     forcing_function = ft.Function((lambda x,y: x*y - y**2 + 2,
                                     lambda x,y: x + x**2 - 0.5*y**2 + 3))    
 
     test_space = basis ; trial_space = basis
-    quadrature = quad.Quadrature(3)
+    quadrature = quad.Quadrature(4)
     reference_element = mt.ReferenceElement()
 
     num_mesh_elements = mesh.get_num_mesh_elements()
@@ -1074,7 +1068,7 @@ def test_mixed_bdm2_assembly_2(basic_mesh_s1_bdm2_p1):
 
     for boundary_dof in dof_handler.get_bdy_dof_dic('bdm_basis'):
         dof_idx, bdy_type, bdy_type_global_idx = boundary_dof
-        if bdy_type=='E':
+        if bdy_type =='E':
             continue
         global_matrix_assembler.set_row_as_dirichlet_bdy(dof_idx)
 
@@ -1089,6 +1083,9 @@ def test_mixed_bdm2_assembly_2(basic_mesh_s1_bdm2_p1):
 
     global_matrix_assembler.solve(global_rhs, solution_vec)
 
-    error_calculator = ec.DarcyErrorHandler(mesh,dof_handler,[basis[0]],solution_vec)
-    l2_vel_error = error_calculator.calculate_vel_error(true_solution)
+    error_calculator = ec.DarcyErrorHandler(mesh,dof_handler,[basis[0],basis[1]],solution_vec)
+    l2_vel_error = error_calculator.calculate_l2_vel_error(true_solution)
+    hdiv_vel_error = error_calculator.calculate_hdiv_vel_error(true_solution)
+    l2_pressure_error = error_calculator.calculate_l2_pressure_error(true_solution)
+    import pdb ; pdb.set_trace()
     assert l2_vel_error < 1.0E-8

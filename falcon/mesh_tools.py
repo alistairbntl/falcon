@@ -634,7 +634,10 @@ class StructuredMesh(Mesh):
 
                         bdy_flag = int(0)
                         if node_1.bdy_flag == 1 and node_2.bdy_flag == 1:
-                            bdy_flag = int(1)
+                            if node_1.vals[0] == node_2.vals[0]:
+                                bdy_flag = int(1)
+                            elif node_1.vals[1] == node_2.vals[1]:
+                                bdy_flag = int(1)
 
                         global_edge_idx = int((3*nx + 1)*j + i)
                         edge = MeshEdge(node_1,
@@ -654,7 +657,10 @@ class StructuredMesh(Mesh):
                             node_2 = self._node_array[global_node_idx + (nx+1)  + k]
                             bdy_flag = int(0)
                             if node_1.bdy_flag == 1 and node_2.bdy_flag == 1:
-                                bdy_flag = int(1)
+                                if node_1.vals[0] == node_2.vals[0]:
+                                    bdy_flag = int(1)
+                                elif node_1.vals[1] == node_2.vals[1]:
+                                    bdy_flag = int(1)
 
                             global_edge_idx = int( (3*nx+1)*j + nx + 2*i + k)
                             edge = MeshEdge(node_1,
@@ -677,8 +683,11 @@ class StructuredMesh(Mesh):
 
                         bdy_flag = int(0)
                         if node_1.bdy_flag == 1 and node_2.bdy_flag == 1:
-                            bdy_flag = int(1)
-
+                            if node_1.vals[0] == node_2.vals[0]:
+                                bdy_flag = int(1)
+                            elif node_1.vals[1] == node_2.vals[1]:
+                                bdy_flag = int(1)
+                            
                         global_edge_idx = int((3*nx + 1)*j + 3*nx)
                         edge = MeshEdge(node_1,
                                         node_2,
@@ -701,7 +710,10 @@ class StructuredMesh(Mesh):
 
                         bdy_flag = int(0)
                         if node_1.bdy_flag == 1 and node_2.bdy_flag == 1:
-                            bdy_flag = int(1)
+                            if node_1.vals[0] == node_2.vals[0]:
+                                bdy_flag = int(1)
+                            elif node_1.vals[1] == node_2.vals[1]:
+                                bdy_flag = int(1)
 
                         global_edge_idx = int((3*nx + 1)*j + i)
                         edge = MeshEdge(node_1,
@@ -731,21 +743,104 @@ class StructuredMesh(Mesh):
                     node_idx_diff = int( base_node_idx + (1-k) * (nx+1) + k )
                     if k==0:
                         idx = [base_node_idx, node_idx_diff, node_idx_comm]
+                        idx.sort()
                         nodes = [self._node_array[ii] for ii in idx]
                     elif k==1:
                         idx = [base_node_idx, node_idx_comm, node_idx_diff]
+                        idx.sort()
                         nodes = [self._node_array[ii] for ii in idx]
-                    bdy_element = bool(sum(node.is_node_bdy() for node in nodes) >= 2)
                     edge_idx = [self.get_global_edge_idx(nodes[1].get_global_idx(), nodes[2].get_global_idx()),
                                 self.get_global_edge_idx(nodes[2].get_global_idx(), nodes[0].get_global_idx()),
                                 self.get_global_edge_idx(nodes[0].get_global_idx(), nodes[1].get_global_idx())]
                     edges = tuple([self.get_edge(p) for p in edge_idx])
+                    bdy_element = bool(sum(edge.is_edge_bdy() for edge in edges) >= 1)                    
+                    element_idx = 2*(nx)*j + 2*i  + k                    
                     element = MeshElement(nodes,
                                           edges,
                                           bdy_flag = bdy_element,
-                                          global_idx = i-1)
-                    element_idx = 2*(nx)*j + 2*i  + k
+                                          global_idx = element_idx)
                     _element_array[element_idx] = element
+        self._element_array = tuple(_element_array)
+        self.set_element_node_idx_array()
+
+class OneElementMesh(Mesh):
+
+    def __init__(self):
+        """ Initialization function for structured mesh.
+
+        Arguments
+        ---------
+        mesh_len : lst
+            List containing dimensions of the mesh
+
+        h : float
+            Length of triangle edge
+        """
+        self._set_nodes()
+        self._set_edges()
+        self._set_elements()
+
+        
+    def _set_nodes(self):
+        xcoords = [0.,1.]
+        ycoords = [0.,1.]
+        node_vals = [(0.,0.), (1.,0.), (0.,1.)]
+        self.num_nodes = 3
+        node_lst = [None]*self.num_nodes
+        
+        for i, node_val in enumerate(node_vals):
+            coord = Node(float(node_val[0]),
+                         float(node_val[1]),
+                         bdy_flag = 1,
+                         global_idx = i)
+            node_lst[i] = coord
+
+        self._node_array = tuple(node_lst)
+        self.set_node_val_array()
+
+    def _set_edges(self):
+        self._edge_dic = {}
+        bdy_edge_array = []
+
+        num_edges = 3
+        _edge_array = [None]*num_edges
+
+        for i,nodes in enumerate([(1,2),(0,2),(0,1)]):
+            node_1 = self._node_array[nodes[0]]
+            node_2 = self._node_array[nodes[1]]
+
+            bdy_flag = int(1)
+            
+            global_edge_idx = int(i)
+            edge = MeshEdge(node_1,
+                            node_2,
+                            bdy_flag = bdy_flag,
+                            global_idx = global_edge_idx)
+            _edge_array[global_edge_idx] = edge
+            self._edge_dic[(node_1.get_global_idx(),
+                            node_2.get_global_idx())] = global_edge_idx
+            self._edge_dic[(node_2.get_global_idx(),
+                            node_1.get_global_idx())] = global_edge_idx            
+            if edge.get_bdy_flag() == 1:
+                bdy_edge_array.append(edge)
+                        
+        self._edge_array = tuple(_edge_array)
+        self._bdy_edge_array = tuple(bdy_edge_array)
+
+    def _set_elements(self):
+        _element_array = [None]*1
+        nodes = [self._node_array[ii] for ii in range(3)]
+        edge_idx = [self.get_global_edge_idx(nodes[1].get_global_idx(), nodes[2].get_global_idx()),
+                    self.get_global_edge_idx(nodes[2].get_global_idx(), nodes[0].get_global_idx()),
+                    self.get_global_edge_idx(nodes[0].get_global_idx(), nodes[1].get_global_idx())]
+        edges = tuple([self.get_edge(p) for p in edge_idx])
+        bdy_element = True
+        element_idx = 0 
+        element = MeshElement(nodes,
+                              edges,
+                              bdy_flag = bdy_element,
+                              global_idx = element_idx)
+        _element_array[element_idx] = element
         self._element_array = tuple(_element_array)
         self.set_element_node_idx_array()
 

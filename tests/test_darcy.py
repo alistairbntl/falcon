@@ -13,51 +13,98 @@ from falcon import linalg_tools as la
 from falcon import function_tools as ft
 from falcon import error_tools as ec
 
+#@pytest.mark.hip
+def test_darcy_converge_1(darcy_bdm1_p0_structured_converge_1):
+    basis, mesh, dof_handler = darcy_bdm1_p0_structured_converge_1
+    l2_error = darcy_convergence_script(basis, mesh, dof_handler)
+    import pdb ; pdb.set_trace()
+    
+#@pytest.mark.hip
 def test_darcy_converge_2(darcy_bdm1_p0_converge_2):
     basis, mesh, dof_handler = darcy_bdm1_p0_converge_2
     l2_error = darcy_convergence_script(basis, mesh, dof_handler)
-    assert abs(l2_error - 0.268586032) < 1.E-08
+    import pdb ; pdb.set_trace()
+#    assert abs(l2_error - 0.268586032) < 1.E-08
 
+#@pytest.mark.hip
 def test_darcy_converge_3(darcy_bdm1_p0_converge_3):
     basis, mesh, dof_handler = darcy_bdm1_p0_converge_3
     l2_error = darcy_convergence_script(basis, mesh, dof_handler)
-    assert abs(l2_error - 0.0964585802) < 1.E-08
+    import pdb ; pdb.set_trace()
+#    assert abs(l2_error - 0.0964585802) < 1.E-08
 
+#@pytest.mark.hip
 def test_darcy_converge_4(darcy_bdm1_p0_converge_4):
     basis, mesh, dof_handler = darcy_bdm1_p0_converge_4
     l2_error = darcy_convergence_script(basis, mesh, dof_handler)
-    assert abs(l2_error - 0.035090596) < 1.E-08
+    import pdb ; pdb.set_trace()
+#    assert abs(l2_error - 0.035090596) < 1.E-08
 
+#@pytest.mark.hip
 def test_darcy_converge_5(darcy_bdm1_p0_converge_5):
     # ARB - Need to investigate these convergence rates more carefully
     basis, mesh, dof_handler = darcy_bdm1_p0_converge_5
     l2_error = darcy_convergence_script(basis, mesh, dof_handler)
-    assert abs(l2_error - 0.025631359) < 1.E-08
+    import pdb ; pdb.set_trace()
+#    assert abs(l2_error - 0.025631359) < 1.E-08
 
+#@pytest.mark.hip
+def test_darcy_bdm2_converge_2(darcy_bdm2_p1_converge_2):
+    basis, mesh, dof_handler = darcy_bdm2_p1_converge_2
+    l2_error = darcy_convergence_script(basis, mesh, dof_handler)
+    assert abs(l2_error - 0.025631359) < 1.E-08    
+
+#@pytest.mark.hip
+def test_darcy_bdm2_converge_2(darcy_bdm2_p1_structured_converge_1):
+    basis, mesh, dof_handler = darcy_bdm2_p1_structured_converge_1
+    l2_error = darcy_convergence_script(basis, mesh, dof_handler)
+
+@pytest.mark.darcy_bdm2
+def test_darcy_partial_bdm2_p1(darcy_bdm2_partial_one_element):
+    basis, mesh, dof_handler = darcy_bdm2_partial_one_element
+    error = darcy_convergence_script(basis,mesh,dof_handler)
+    import pdb ; pdb.set_trace()
+    
 def darcy_convergence_script(basis, mesh, dof_handler):
 
     num_local_dof = sum([a.get_num_dof() for a in basis])
     global_matrix_assembler = la.GlobalMatrix(dof_handler.get_num_dof(),
                                               dof_handler.get_num_dof())
-
     local_matrix_assembler = la.LocalMatrixAssembler(dof_handler,
                                                      num_local_dof,
                                                      global_matrix_assembler)
+    num_pressure_dof = mesh.get_num_mesh_elements()*basis[1].get_num_interior_dof()
 
     solution_vec = la.DiscreteSolutionVector(dof_handler.get_num_dof())
     global_rhs = la.GlobalRHS(dof_handler)
+    
+    # Example 1
+    # fx = lambda x,y : x*y - y**2
+    # fy = lambda x,y : x + x**2 - 0.5*y**2
+    # axi_div_u = lambda x,y : 0.0
+    # p = lambda x,y : 2*x + 3*y - 3./2.
+    # true_solution = ft.TrueSolution([fx,fy,p],
+    #                                 [axi_div_u])
+    # dirichlet_forcing_function = ft.Function((lambda x,y: x*y - y**2,
+    #                                           lambda x,y: x + x**2 - 0.5*y**2))
+    # forcing_function = ft.Function((lambda x,y: x*y - y**2 + 2,
+    #                                 lambda x,y: x + x**2 - 0.5*y**2 + 3))    
 
-    fx = lambda x,y : x*y - y**2
-    fy = lambda x,y : x + x**2 - 0.5*y**2
-    p = lambda x,y : 2*x + 3*y - 3./2.
-    true_solution = ft.TrueSolution([fx,fy,p])
-    dirichlet_forcing_function = ft.Function((lambda x,y: x*y - y**2,
-                                              lambda x,y: x + x**2 - 0.5*y**2))
-    forcing_function = ft.Function((lambda x,y: x*y - y**2 + 2,
-                                    lambda x,y: x + x**2 - 0.5*y**2 + 3))    
-
+    # Example 2
+    cos = math.cos ; sin = math.sin ; pi = math.pi
+    fx = lambda x,y : sin(pi*x)*cos(pi*y)
+    fy = lambda x,y : -cos(pi*x)*sin(pi*y)
+    axi_div_u = lambda x,y : 0.0
+    p = lambda x,y : x*y
+    true_solution = ft.TrueSolution([fx,fy,p],
+                                    [axi_div_u])
+    dirichlet_forcing_function = ft.Function((fx,
+                                              fy))
+    forcing_function = ft.Function((lambda x,y: fx(x,y) + y,
+                                    lambda x,y: fy(x,y) + x))    
+    
     test_space = basis ; trial_space = basis
-    quadrature = quad.Quadrature(3)
+    quadrature = quad.Quadrature(4)
     reference_element = mt.ReferenceElement()
 
     num_mesh_elements = mesh.get_num_mesh_elements()
@@ -124,7 +171,7 @@ def darcy_convergence_script(basis, mesh, dof_handler):
                     int_val = -(val_dic_trial['vals']
                                 *val_dic_test['div']
                                 *val_dic_test['quad_wght'])
-                    
+
                     j_tmp = j + trial_space[0].get_num_dof()
                     local_matrix_assembler.add_val(i,j_tmp,int_val)
                     # check the non velocity-velocity parts
@@ -154,14 +201,18 @@ def darcy_convergence_script(basis, mesh, dof_handler):
         local_matrix_assembler.distribute_local_2_global(eN)
         local_matrix_assembler.reset_matrix()
 
+    global_matrix_assembler.set_average_pressure_val(num_pressure_dof)
+
     global_matrix_assembler.initialize_sparse_matrix()
     global_matrix_assembler.set_csr_rep()
 
+    A = global_matrix_assembler.get_array_rep()
     # ******************* Pin down the pressure to make system non-singular ****************
-    global_matrix_assembler.set_row_as_dirichlet_bdy(dof_handler.get_num_dof() - 1)
-
+#    global_matrix_assembler.set_row_as_dirichlet_bdy(dof_handler.get_num_dof() - 1)
     for boundary_dof in dof_handler.get_bdy_dof_dic('bdm_basis'):
         dof_idx, bdy_type, bdy_type_global_idx = boundary_dof
+        if bdy_type=='E':
+            continue        
         global_matrix_assembler.set_row_as_dirichlet_bdy(dof_idx)
 
         global_edge = mesh.get_edge(bdy_type_global_idx)
@@ -175,7 +226,9 @@ def darcy_convergence_script(basis, mesh, dof_handler):
 
     global_matrix_assembler.solve(global_rhs, solution_vec)
 
-    error_calculator = ec.DarcyErrorHandler(mesh,dof_handler,[basis[0]],solution_vec)
-    l2_vel_error = error_calculator.calculate_vel_error(true_solution)
-    return l2_vel_error
+    error_calculator = ec.DarcyErrorHandler(mesh,dof_handler,[basis[0],basis[1]],solution_vec)
+    l2_vel_error = error_calculator.calculate_l2_vel_error(true_solution)
+    hdiv_vel_error = error_calculator.calculate_hdiv_vel_error(true_solution)
+    l2_pressure_error = error_calculator.calculate_l2_pressure_error(true_solution)
+    return l2_vel_error, hdiv_vel_error, l2_pressure_error
     

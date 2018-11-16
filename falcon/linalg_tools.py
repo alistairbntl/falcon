@@ -9,6 +9,17 @@ class Operators():
         return sum([n1*n2 for n1,n2 in zip(v1,v2)])
 
     @staticmethod
+    def tensor_dot_product(tens1, tens2):
+        a = [tens1[0][i]*tens2[0][i]+tens1[1][i]*tens1[1][i] for i in [0,1]]
+        import pdb ; pdb.set_trace()
+        return sum(a)
+
+    @staticmethod
+    def lam_func_dot_product(f1,f2):
+        f_new = lambda x,y : f1[0](x,y)*f2[0](x,y) + f1[1](x,y)*f2[1](x,y) 
+        return f_new
+
+    @staticmethod
     def deviatoric(sig1):
         """ Calculate the deviatoric of a tensor.
 
@@ -149,6 +160,14 @@ class GlobalMatrix():
         d = self._csr.diagonal()
         d[i] = 1.0
         self._csr.setdiag(d)
+
+    def set_average_pressure_val(self,num_pressure_dof):
+        num_dof = max(self._row) + 1
+        a = np.bincount(self._row)[-1]
+        for term in range(-a,0):
+            self._val[term] = 0.
+        for t in range(num_dof-num_pressure_dof, num_dof):
+            self.add_new_entry(num_dof-1, t, 1.0)
 
     def solve(self,rhs,sol_vec):
         rhs_vec = rhs.get_rhs_vec()

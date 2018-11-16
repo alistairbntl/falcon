@@ -103,10 +103,11 @@ class PiolaMap(ReferenceElementMap):
         """
         new_vals = copy.deepcopy(vals)
         adjusted_vals = ['vals','div']
+        dof_per_edge = basis.get_degree()+1   #ARB - note this is set up for bdm spaces
+        # and may not work for other div_free spaces
 
         if i < basis.get_num_edge_dof():
             edge_num = i % 3
-            edge_dof = i / 3
             physical_element_edge = self.element.get_edge(edge_num)            
             reference_element_edge_length = mt.ReferenceElement.get_edge_length(edge_num)
             physical_element_edge_length = physical_element_edge.get_edge_length()
@@ -117,9 +118,9 @@ class PiolaMap(ReferenceElementMap):
                                      *physical_element_edge.get_unit_normal_vec()[1])                
             scaling_factor = physical_element_edge_length*norm_scale/reference_element_edge_length
 
-        # ARB - see if this is necessary
-        # if i >= basis.get_num_dof_per_edge():
-        #     scaling_factor = self.element.get_edge(i % 3).get_edge_length()
+        # scale interior elements by one of the triangle edge lengths
+        if i >= basis.get_num_edge_dof():
+            scaling_factor = self.element.get_edge(1).get_edge_length()
 
         for val_type in adjusted_vals:
             if val_type=='vals':

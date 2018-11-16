@@ -25,8 +25,9 @@ class Operators():
 
 class Function(object):
 
-    def __init__(self,f):
+    def __init__(self, f, div_f=None):
         self._f = f
+        self._div_f = div_f
 
     def get_f_eval(self, quad_pt):
         vals = []
@@ -40,15 +41,29 @@ class Function(object):
         vals[1] = self._f[1](quad_pt[0],quad_pt[1])
         return vals
 
+    def get_p_eval(self, quad_pt):
+        vals = self._f[2](quad_pt[0],quad_pt[1])
+        return vals
+
     def get_normal_velocity_func(self, n):
         fx_n1 = lambda x, y : self._f[0](x,y)*n[0]
         fy_n2 = lambda x, y : self._f[1](x,y)*n[1]
-        return lambda x, y : fx_n1(x,y) + fy_n2(x,y)    
+        return lambda x, y : fx_n1(x,y) + fy_n2(x,y)
+
+    def get_div_f_vel_eval(self, quad_pt):
+        div_vals = []
+        try:
+            for fun in self._div_f:
+                div_vals.append(fun(quad_pt[0],quad_pt[1]))
+            return div_vals
+        except AttributeError:
+            assert 1 == 0
 
 class TrueSolution(Function):
 
-    def __init__(self, f):
-        super(TrueSolution,self).__init__(f)
+    def __init__(self, f, div_f = None):
+        super(TrueSolution,self).__init__(f,
+                                          div_f = div_f)
         self._f = f
 
 class Iterator:

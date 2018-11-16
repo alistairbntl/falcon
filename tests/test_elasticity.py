@@ -13,7 +13,6 @@ from falcon import linalg_tools as la
 from falcon import function_tools as ft
 from falcon import error_tools as ec
 
-@pytest.mark.bdm
 def test_bdm_p0_elasticity_reference():
     reference_element = mt.ReferenceElement()
     basis = [bdm.BDMTensBasis(1),
@@ -92,7 +91,6 @@ def test_bdm_p0_elasticity_reference():
     assert abs(c_ref_block[0] - 0.08627302) < 1.e-6
     assert abs(c_ref_block[3] - 0.32197528) < 1.e-6
     
-@pytest.mark.bdm
 def test_elasticity_2(basic_mesh_bdm1_p0_elasticity):
     basis, mesh, dof_handler = basic_mesh_bdm1_p0_elasticity
 
@@ -180,8 +178,6 @@ def test_elasticity_2(basic_mesh_bdm1_p0_elasticity):
     assert abs(c_ref_block[2] + 0.32197528) < 1.e-6 ; assert abs(c_ref_block[5] + 0.08627302) < 1.e-6
     assert abs(c_ref_block[8] - 0.08627302) < 1.e-6 ; assert abs(c_ref_block[11] - 0.32197528) < 1.e-6
     
-@pytest.mark.bdm
-@pytest.mark.elasticity
 def test_elasticity_2(basic_mesh_bdm1_p0_elasticity):
     basis, mesh, dof_handler = basic_mesh_bdm1_p0_elasticity
 
@@ -378,9 +374,8 @@ def test_elasticity_2(basic_mesh_bdm1_p0_elasticity):
             pass
 
     global_matrix_assembler.solve(global_rhs, solution_vec)
+    import pdb ; pdb.set_trace()
 
-@pytest.mark.bdm1
-@pytest.mark.current1
 def test_elasticity_3(basic_mesh2_bdm1_p0_elasticity):
     basis, mesh, dof_handler = basic_mesh2_bdm1_p0_elasticity
 
@@ -577,9 +572,8 @@ def test_elasticity_3(basic_mesh2_bdm1_p0_elasticity):
     ### something to look into.  Also, the dof_handler class has a new
     ### method get_global_basis_dof_rng that returns the dof ranges for each
     ### basis in the FE space.
-    import pdb ; pdb.set_trace()
 
-#@pytest.mark.current1
+@pytest.mark.skip
 def test_elasticity_4(basic_mesh2_bdm1_partial_elasticity):
     basis, mesh, dof_handler = basic_mesh2_bdm1_partial_elasticity
 
@@ -708,7 +702,7 @@ def test_elasticity_4(basic_mesh2_bdm1_partial_elasticity):
                                               solution_vec)
     err_stress = error_handler.calculate_stress_error(true_stress)
 
-@pytest.mark.current1
+@pytest.mark.skip
 def test_elasticity_5(basic_mesh2_bdm1_partial_elasticity):
     basis, mesh, dof_handler = basic_mesh2_bdm1_partial_elasticity
 
@@ -835,4 +829,4 @@ def test_elasticity_5(basic_mesh2_bdm1_partial_elasticity):
                                               basis,
                                               solution_vec)
     err_stress = error_handler.calculate_stress_error(true_stress)
-    import pdb ; pdb.set_trace()
+
