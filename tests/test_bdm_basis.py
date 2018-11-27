@@ -226,6 +226,15 @@ def test_p2basis_2d():
     #             np.array_equal(test['dvals'],(1.,1.))
 
 
+@pytest.mark.p2basis
+def test_p2basis_2d_2():
+    P2_basis = bdm.P2Basis_2D()
+    assert P2_basis.get_num_dof() == 6
+    assert P2_basis.get_num_interior_dof() == 0
+    assert P2_basis.get_num_dof_per_edge() == 1
+    assert P2_basis.get_num_edge_dof() == 3
+    assert P2_basis.get_num_dof_per_node() == 1
+    
 @pytest.mark.bdm
 def test_bdm_tens_basis_1():
     bdm_tens_basis = bdm.BDMTensBasis(1)

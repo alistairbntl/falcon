@@ -5,6 +5,7 @@ import math
 import quadrature as quad
 import mesh_tools as mt
 import function_tools as ft
+import linalg_tools as lat
 
 class Empty(object):
 
@@ -71,7 +72,7 @@ class Basis(object):
                       quad_pt,
                       mapping):
         return quad_pt.get_quad_weight()
-
+    
 class P0Basis_2D(Basis):
 
     def __init__(self):
@@ -93,13 +94,6 @@ class P0Basis_2D(Basis):
     def get_name(self):
         return "p0_basis"
 
-    def get_func_val(self,
-                     basis_func_idx,
-                     quad_pt,
-                     mapping):
-        basis_func = self.get_basis_func(basis_func_idx)
-        xi = quad_pt.vals[0] ; eta = quad_pt.vals[1]
-        return basis_func(xi,eta)
 
     def get_basis_func(self,idx):
         try:
@@ -303,6 +297,13 @@ class P0VecBasis_2D(Basis):
 
     def get_num_dof_per_node(self):
         return 2*self.P0_basis_2D.get_num_dof_per_node()
+
+class P1Basis(Basis):
+
+    def __init__(self):
+        super(P1Basis,self).__init__()
+        self.set_degree(1)
+        
     
 class P1Basis_2D(Basis):
 
@@ -373,6 +374,86 @@ class P1Basis_2D(Basis):
 
     def get_func_grad(self,dof_num):
         return self.basis_funcs_grad[dof_num]
+
+class P2Basis_2D(Basis):
+
+    def __init__(self):
+        super(P2Basis_2D,self).__init__()
+        self.set_degree(2)
+        self._initialize_element_functions()
+        self._set_local_function_dispatcher()
+
+    def _set_local_function_dispatcher(self):
+        local_functions = {'vals' : self.get_func_val,
+                           'dvals' : self.get_func_dval}
+        self._function_dispatcher.update(local_functions)
+
+    def get_func_val(self,
+                     basis_func_idx,
+                     quad_pt,
+                     mapping):
+        basis_func = self.get_basis_func(basis_func_idx)
+        xi = quad_pt.vals[0] ; eta = quad_pt.vals[1]
+        return basis_func(xi, eta)
+
+    def get_func_dval(self,
+                      basis_func_idx,
+                      quad_pt,
+                      mapping):
+        basis_func = self.get_basis_dfunc(basis_func_idx)
+        xi = quad_pt.vals[0] ; eta = quad_pt.vals[1]
+        xi = basis_func[0](xi,eta) ; eta = basis_func[1](xi,eta)
+        x, y = mapping.apply_inv_transpose_jacobian_mat(xi,eta)
+        return x, y
+
+    def get_basis_func_lst(self):
+        return self._basis_funcs
+    
+    def get_basis_func(self, idx):
+        return self._basis_funcs[idx]
+
+    def get_basis_dfunc(self,idx):
+        return self._basis_funcs_grad[idx]
+        
+    def get_name(self):
+        return "p2_basis"            
+
+    def get_num_dof(self):
+        return 6
+
+    def get_num_interior_dof(self):
+        return 0
+
+    def get_num_dof_per_edge(self):
+        return 1
+
+    def get_num_edge_dof(self):
+        return 3
+
+    def get_num_dof_per_node(self):
+        return 1
+
+    def _initialize_element_functions(self):
+        self._basis_funcs = [lambda xi, eta: 4*xi*eta,
+                             lambda xi, eta: 4*(1-xi-eta)*eta,
+                             lambda xi, eta: 4*xi*(1-xi-eta),
+                             lambda xi, eta: 2*(0.5 - xi - eta)*(1-xi-eta),
+                             lambda xi, eta: 2*xi*(xi-0.5),
+                             lambda xi, eta: 2*eta*(eta-0.5)]
+
+        self._basis_funcs_grad = [[lambda xi, eta: 4*eta, lambda xi, eta: 4*xi],
+                                  [lambda xi, eta: -4*eta,  lambda xi, eta: -4*(xi + 2*eta -1)],
+                                  [lambda xi, eta: -4*(2*xi + eta -1), lambda xi, eta: -4*x],
+                                  [lambda xi, eta: 4*xi + 4*eta - 3,  lambda xi, eta: 4*xi + 4*eta -3],
+                                  [lambda xi, eta: 4*(xi - 0.25), lambda xi, eta: 0.],
+                                  [lambda xi, eta: 0., lambda xi, eta: 4*(eta - 0.25)]]
+                                  
+    def get_func(self,dof_num):
+        return self._basis_funcs[dof_num]
+
+    def get_func_grad(self,dof_num):
+        return self.basis_funcs_grad[dof_num]
+
 
 class P1VecBasis_2D(Basis):
 
@@ -522,7 +603,6 @@ class BDMTensBasis(Basis):
                 b_tmp = [zero_fun, zero_fun]
                 self._bdm_tens_lst[6*j + 2*k] = np.array([a_tmp,b_tmp])
                 self._bdm_tens_lst[6*j + 2*k + 1] = np.array([b_tmp,a_tmp])
-                x = 0.6590276 ; y = 0.2319333
 
     def _set_basis_div_lst(self):
         basis_div_lst = self.bdm_basis.get_basis_div_func_lst()
@@ -608,8 +688,32 @@ class BDMBasis(Basis):
                                int_func[0],
                                int_func[1],
                                int_func[2]]
-            x = 0.659027622 ; y = 0.23193336855
-#            import pdb ; pdb.set_trace()
+
+        if self.get_degree() == 3:
+            edge_func = self.edge_functions.edge_funcs
+            int_func = self.interior_functions.int_funcs
+            self._basis_lst = [edge_func[0][0],
+                               edge_func[1][0],
+                               edge_func[2][0],
+                               edge_func[0][1],
+                               edge_func[1][1],
+                               edge_func[2][1],
+                               edge_func[0][2],
+                               edge_func[1][2],
+                               edge_func[2][2],
+                               edge_func[0][3],
+                               edge_func[1][3],
+                               edge_func[2][3],
+                               int_func[0],
+                               int_func[1],
+                               int_func[2],
+                               int_func[3],
+                               int_func[4],
+                               int_func[5],
+                               int_func[6],
+                               int_func[7]]
+            
+
 
     def _set_basis_div_lst(self):
         if self.get_degree() == 1:
@@ -635,6 +739,29 @@ class BDMBasis(Basis):
                                    int_div_func[0],
                                    int_div_func[1],
                                    int_div_func[2]]
+        if self.get_degree() == 3:
+            edge_div_func = self.edge_functions.edge_div_funcs
+            int_div_func = self.interior_functions.int_div_funcs
+            self._basis_div_lst = [edge_div_func[0][0],
+                                   edge_div_func[1][0],
+                                   edge_div_func[2][0],
+                                   edge_div_func[0][1],
+                                   edge_div_func[1][1],
+                                   edge_div_func[2][1],
+                                   edge_div_func[0][2],
+                                   edge_div_func[1][2],
+                                   edge_div_func[2][2],
+                                   edge_div_func[0][3],
+                                   edge_div_func[1][3],
+                                   edge_div_func[2][3],
+                                   int_div_func[0],
+                                   int_div_func[1],
+                                   int_div_func[2],
+                                   int_div_func[3],
+                                   int_div_func[4],
+                                   int_div_func[5],
+                                   int_div_func[6],
+                                   int_div_func[7]]
 
     def get_name(self):
         return "bdm_basis"
@@ -644,29 +771,39 @@ class BDMBasis(Basis):
             return 6
         elif self.get_degree()==2:
             return 12
+        elif self.get_degree()==3:
+            return 20
 
     def get_num_interior_dof(self):
         if self.get_degree()==1:
             return 0
         elif self.get_degree()==2:
             return 3
+        elif self.get_degree()==3:
+            return 8
 
     def get_num_dof_per_edge(self):
         if self.get_degree()==1:
             return 2
         elif self.get_degree()==2:
             return 3
+        elif self.get_degree()==3:
+            return 4
 
     def get_num_edge_dof(self):
         if self.get_degree()==1:
             return 6
         if self.get_degree()==2:
             return 9
+        if self.get_degree()==3:
+            return 12
 
     def get_num_dof_per_node(self):
         if self.get_degree()==1:
             return 0
         elif self.get_degree()==2:
+            return 0
+        elif self.get_degree()==3:
             return 0
 
     def get_basis_func(self,idx):
@@ -700,7 +837,6 @@ class BDMBasis(Basis):
             self._set_basis_div_lst()
             basis_func = self._basis_div_lst
         return basis_func
-    
 
     def get_func_vals(self,
                       basis_func_idx,
@@ -761,6 +897,7 @@ class BDMBasis(Basis):
             This is the basis function's index number within the set
             of basis functions built on basis_edge.
 
+
         dof_num : int
             Builds the normal component using the dof number.
 
@@ -798,7 +935,10 @@ class BDMSubFuncs(object):
 
     def __init__(self, k):
         self.set_degree(k)
-        self.quadrature = quad.Quadrature(self.get_degree() + 1)
+        if k < 3:
+            self.quadrature = quad.Quadrature(self.get_degree() + 1)
+        elif k==3:
+            self.quadrature = quad.Quadrature(5)
         self.reference_element = mt.ReferenceElement()
 
     def set_degree(self,k):
@@ -823,10 +963,143 @@ class BDMIntFuncs(BDMSubFuncs):
             q0 = self.quadrature.edge_quad_pt[0]
             q1 = self.quadrature.edge_quad_pt[1]
 
+            f, ell, grad_ell, e, e_div = self._get_tangent_base_funcs(q0, q1)
+            
+            self.int_funcs.append( np.array([f[0], f[1]]) )
+            self.int_div_funcs.append( self._get_int_div_func(ell[0],
+                                                              grad_ell[0],
+                                                              e[0],
+                                                              e_div[0]) )
+
+            self.int_funcs.append( np.array([f[2], f[3]]) )
+            self.int_div_funcs.append( self._get_int_div_func(ell[1],
+                                                              grad_ell[1],
+                                                              e[1],
+                                                              e_div[1]) )            
+
+            self.int_funcs.append( np.array([f[4], f[5]]) )
+            self.int_div_funcs.append( self._get_int_div_func(ell[2],
+                                                              grad_ell[2],
+                                                              e[2],
+                                                              e_div[2]) )
+
+        if self.get_degree() == 3:
+            q0 = self.quadrature.edge_quad_pt[0] ; q1 = self.quadrature.edge_quad_pt[1]
+
+            f, ell, grad_ell, e, e_div = self._get_tangent_base_funcs(q0,q1)
+            p1_basis_eta = [lambda xi,eta : 1.,  lambda xi,eta : eta]
+            p1_basis_xi = [lambda xi,eta : 1., lambda xi,eta: xi]
+            # ARB - hmmm, not sure the best way to handle this 
+            grad_p1_basis_eta_0 = [lambda xi,eta : 0., lambda xi,eta : 0.]
+            grad_p1_basis_eta_1 = [lambda xi,eta : 0., lambda xi,eta : 1.]
+            grad_p1_basis_xi_0 = [lambda xi,eta: 0., lambda xi, eta: 0.]
+            grad_p1_basis_xi_1 = [lambda xi,eta: 1., lambda xi, eta: 0.]
+
+            f11 = lambda xi, eta: p1_basis_eta[0](xi, eta) * f[0](xi, eta)
+            f12 = lambda xi, eta: p1_basis_eta[0](xi, eta) * f[1](xi, eta)
+            self.int_funcs.append( np.array([f11, f12]) )
+            
+            phi = lambda xi,eta : p1_basis_eta[0](xi,eta) * ell[0](xi,eta)
+            grad_phi = lat.Operators.scalar_product_grad(p1_basis_eta[0],
+                                                         ell[0],
+                                                         grad_p1_basis_eta_0,
+                                                         grad_ell[0])
+            self.int_div_funcs.append( self._get_int_div_func(phi,
+                                                              grad_phi,
+                                                              e[0],
+                                                              e_div[0]))
+
+            f21 = lambda xi, eta: p1_basis_xi[0](xi, eta) * f[2](xi, eta)
+            f22 = lambda xi, eta: p1_basis_xi[0](xi, eta) * f[3](xi, eta)
+            self.int_funcs.append( np.array([f21, f22]) )
+
+            phi = lambda xi, eta : p1_basis_xi[0](xi,eta) * ell[1](xi,eta)
+            grad_phi = lat.Operators.scalar_product_grad(p1_basis_xi[0],
+                                                         ell[1],
+                                                         grad_p1_basis_xi_0,
+                                                         grad_ell[1])
+            self.int_div_funcs.append( self._get_int_div_func(phi,
+                                                              grad_phi,
+                                                              e[1],
+                                                              e_div[1]))            
+            
+            f31 = lambda xi, eta: p1_basis_eta[0](xi, eta) * f[4](xi, eta)
+            f32 = lambda xi, eta: p1_basis_eta[0](xi, eta) * f[5](xi, eta)
+            self.int_funcs.append( np.array([f31, f32]) )
+
+            phi = lambda xi, eta : p1_basis_eta[0](xi, eta) * ell[2](xi,eta)
+            grad_phi = lat.Operators.scalar_product_grad(p1_basis_eta[0],
+                                                        ell[2],
+                                                        grad_p1_basis_eta_0,
+                                                        grad_ell[2])
+            self.int_div_funcs.append( self._get_int_div_func(phi,
+                                                              grad_phi,
+                                                              e[2],
+                                                              e_div[2]))
+            
+
+            f41 = lambda xi, eta: p1_basis_eta[1](eta, xi) * f[0](xi, eta)
+            f42 = lambda xi, eta: p1_basis_eta[1](eta, xi) * f[1](xi, eta)
+            self.int_funcs.append( np.array([f41, f42]) )
+
+            phi = lambda xi, eta: p1_basis_eta[1](xi, eta) * ell[0](xi, eta)
+            grad_phi = lat.Operators.scalar_product_grad(p1_basis_eta[1],
+                                                         ell[0],
+                                                         grad_p1_basis_eta_1,
+                                                         grad_ell[0])
+            self.int_div_funcs.append( self._get_int_div_func(phi,
+                                                              grad_phi,
+                                                              e[0],
+                                                              e_div[0]) )
+            
+            f51 = lambda xi, eta: p1_basis_xi[1](xi, eta) * f[2](xi, eta)
+            f52 = lambda xi, eta: p1_basis_xi[1](xi, eta) * f[3](xi, eta)
+            self.int_funcs.append( np.array([f51, f52]) )
+
+            phi = lambda xi, eta: p1_basis_xi[1](xi, eta) * ell[1](xi, eta)
+            grad_phi = lat.Operators.scalar_product_grad(p1_basis_xi[1],
+                                                         ell[1],
+                                                         grad_p1_basis_xi_1,
+                                                         grad_ell[1])
+            self.int_div_funcs.append( self._get_int_div_func(phi,
+                                                              grad_phi,
+                                                              e[1],
+                                                              e_div[1]) )
+
+            f61 = lambda xi, eta: p1_basis_eta[1](xi, eta) * f[4](xi, eta)
+            f62 = lambda xi, eta: p1_basis_eta[1](xi, eta) * f[5](xi, eta)
+            self.int_funcs.append( np.array([f61, f62]) )
+
+            phi = lambda xi, eta: p1_basis_eta[1](xi, eta) * ell[2](xi, eta)
+            grad_phi = lat.Operators.scalar_product_grad(p1_basis_eta[1],
+                                                         ell[2],
+                                                         grad_p1_basis_eta_1,
+                                                         grad_ell[2])
+            self.int_div_funcs.append( self._get_int_div_func(phi,
+                                                              grad_phi,
+                                                              e[2],
+                                                              e_div[2]) )
+
+            int_funcs = self._get_interior_basis_funcs()
+            b11 = int_funcs[0][0] ; b12 = int_funcs[0][1]
+            self.int_funcs.append( np.array([b11, b12] ) )
+
+            b1_div = lambda xi, eta: -eta*(2*xi + eta -1)
+            self.int_div_funcs.append( b1_div)
+            
+            b21 = int_funcs[1][0] ; b22 = int_funcs[1][1]
+            self.int_funcs.append( np.array([b21, b22] ) )
+
+            b2_div = lambda xi, eta: -xi*(xi+ 2*eta - 1)
+            self.int_div_funcs.append(b2_div)
+
+            #ARB Q - what is the best way to handle divergence ?
+
+    def _get_tangent_base_funcs(self, q0, q1):
             ell1 = lambda xi, eta: 1 - xi - eta
             grad_ell1 = [lambda xi, eta: -1., lambda xi, eta: -1.]
             ell2 = lambda xi, eta: xi
-            grad_ell2 = [lambda xi, eta: 1., lambda xi, eta: 0.]            
+            grad_ell2 = [lambda xi, eta: 1., lambda xi, eta: 0.]
             ell3 = lambda xi, eta: eta
             grad_ell3 = [lambda xi, eta: 0., lambda xi, eta: 1.]
 
@@ -840,30 +1113,22 @@ class BDMIntFuncs(BDMSubFuncs):
                   BDMEdgeFuncs._edge_func_three(q0,q1)[1]]
             e2_div = BDMEdgeFuncs._edge_func_div_three(q0,q1)
 
-            f11 = lambda xi, eta: ell1(xi, eta) * e0[0](xi, eta)
-            f12 = lambda xi, eta: ell1(xi, eta) * e0[1](xi, eta)
-            self.int_funcs.append( np.array([f11, f12]) )
-            self.int_div_funcs.append( self._get_int_div_func(ell1,
-                                                              grad_ell1,
-                                                              e0,
-                                                              e0_div) )
+            f11 = lambda xi, eta: ell1(xi, eta) * e0[0](xi, eta) ; f12 = lambda xi, eta: ell1(xi, eta) * e0[1](xi, eta)
+            f21 = lambda xi, eta: ell2(xi, eta) * e1[0](xi, eta) ; f22 = lambda xi, eta: ell2(xi, eta) * e1[1](xi, eta)
+            f31 = lambda xi, eta: ell3(xi, eta) * e2[0](xi, eta) ; f32 = lambda xi, eta: ell3(xi, eta) * e2[1](xi, eta)
 
-            f21 = lambda xi, eta: ell2(xi, eta) * e1[0](xi, eta)
-            f22 = lambda xi, eta: ell2(xi, eta) * e1[1](xi, eta)
-            self.int_funcs.append( np.array([f21, f22]) )
-            self.int_div_funcs.append( self._get_int_div_func(ell2,
-                                                              grad_ell2,
-                                                              e1,
-                                                              e1_div) )            
+            f = [f11, f12, f21, f22, f31, f32]
+            ell = [ell1, ell2, ell3] ; grad_ell = [grad_ell1, grad_ell2, grad_ell3]
+            e = [e0, e1, e2] ; e_div = [e0_div, e1_div, e2_div]
 
-            f31 = lambda xi, eta: ell3(xi, eta) * e2[0](xi,eta)
-            f32 = lambda xi, eta: ell3(xi, eta) * e2[1](xi,eta)
-            self.int_funcs.append( np.array([f31, f32]) )
-            self.int_div_funcs.append( self._get_int_div_func(ell3,
-                                                              grad_ell3,
-                                                              e2,
-                                                              e2_div) )
+            return f, ell, grad_ell, e, e_div
 
+    def _get_interior_basis_funcs(self):
+        b11 = lambda xi, eta: (1-xi-eta)*xi*eta ; b12 = lambda xi, eta: 0.
+        b21 = lambda xi, eta: 0. ; b22 = lambda xi, eta: (1-xi-eta)*xi*eta
+        bubble_1 = [b11, b12] ; bubble_2 = [b21, b22]
+        return [bubble_1, bubble_2]
+        
     def _get_int_div_func(self, ell, grad_ell, e, e_div):
         func_1 = lambda xi, eta : grad_ell[0](xi, eta)*e[0](xi,eta) + grad_ell[1](xi,eta)*e[1](xi,eta)
         func_2 = lambda xi, eta : ell(xi,eta) * e_div(xi,eta)
@@ -940,6 +1205,34 @@ class BDMEdgeFuncs(BDMSubFuncs):
         return [lambda xi, eta: 1. / (p1-p2),
                 lambda xi, eta: 0. ]    
 
+    @staticmethod
+    def _quad_lagrange_edge_one(p1, p2, p3):
+        return lambda xi, eta: (eta - p2) * (eta - p3) / ( (p1-p2)*(p1-p3) )
+
+    @staticmethod
+    def _quad_lagrange_edge_one_grad(p1,p2,p3):
+        return [lambda xi, eta: 0.,
+                lambda xi, eta: -(p2+p3-2*eta) / ( (p1-p2)*(p1-p3) ) ]
+
+    @staticmethod
+    def _quad_lagrange_edge_two(p1, p2, p3):
+        return lambda xi, eta: (eta - p2) * (eta - p3) / ( (p1-p2)*(p1-p3) )
+
+    @staticmethod
+    def _quad_lagrange_edge_two_grad(p1,p2,p3):
+        return [lambda xi, eta: 0.,
+                lambda xi, eta: -(p2+p3-2*eta) / ( (p1-p2)*(p1-p3) ) ]
+
+    @staticmethod
+    def _quad_lagrange_edge_three(p1, p2, p3):
+        return lambda xi, eta: (xi - p2) * (xi - p3) / ( (p1-p2)*(p1-p3) )
+
+    @staticmethod
+    def _quad_lagrange_edge_three_grad(p1,p2,p3):
+        return [lambda xi, eta: 0.,
+                lambda xi, eta: -(p2+p3-2*xi) / ( (p1-p2)*(p1-p3) ) ]
+
+    
     def _initialize_edge_functions(self):
         self._get_edge_vec_functions()
 
@@ -987,7 +1280,136 @@ class BDMEdgeFuncs(BDMSubFuncs):
             for func in edge_three_funcs:
                 self.edge_funcs[2].append(func)
             for func in edge_three_div_funcs:
-                self.edge_div_funcs[2].append(func)                
+                self.edge_div_funcs[2].append(func)
+
+        if self.k==3:
+            edge_one_funcs, edge_one_div_funcs = self._get_edge_func_one_gen(self.quadrature)
+            for func in edge_one_funcs:
+                self.edge_funcs[0].append(func)
+            for func in edge_one_div_funcs:
+                self.edge_div_funcs[0].append(func)
+
+            edge_two_funcs, edge_two_div_funcs = self._get_edge_func_two_gen(self.quadrature)
+            for func in edge_two_funcs:
+                self.edge_funcs[1].append(func)
+            for func in edge_two_div_funcs:
+                self.edge_div_funcs[1].append(func)
+
+            edge_three_funcs, edge_three_div_funcs = self._get_edge_func_three_gen(self.quadrature)
+            for func in edge_three_funcs:
+                self.edge_funcs[2].append(func)
+            for func in edge_three_div_funcs:
+                self.edge_div_funcs[2].append(func)
+
+    def _get_edge_func_one_gen(self,quads):
+        edge_quads = quads.edge_quad_pt
+        num_quads = len(edge_quads)
+
+        edge_one_func = [] ; edge_one_div_func = []
+
+        _edge_func = {} ; _edge_func_div = {}
+        _lagrange = {} ; _lagrange_grad = {}
+        func_dic = {} ; div_dic = {}
+
+        for k in range(num_quads):
+            _edge_func[k] = BDMEdgeFuncs._edge_func_one(edge_quads[k % num_quads],
+                                                        edge_quads[(k+1) % num_quads])
+            _edge_func_div[k] = BDMEdgeFuncs._edge_func_div_one(edge_quads[k % num_quads],
+                                                                edge_quads[(k+1) % num_quads])
+
+            _lagrange[k] = self._quad_lagrange_edge_one(edge_quads[k % num_quads],
+                                                        edge_quads[(k+2) % num_quads],
+                                                        edge_quads[(k+3) % num_quads])
+            _lagrange_grad[k] = self._quad_lagrange_edge_one_grad(edge_quads[k % num_quads],
+                                                                  edge_quads[(k+2) % num_quads],
+                                                                  edge_quads[(k+3) % num_quads])
+            key_1 = `k`+'_0'
+            key_2 = `k`+'_1'
+            func_dic[key_1] = lat.Operators.lam_func_product(_lagrange[k], _edge_func[k][0])
+            func_dic[key_2] = lat.Operators.lam_func_product(_lagrange[k], _edge_func[k][1])
+
+            edge_one_func.append(np.array([func_dic[key_1], func_dic[key_2]]))
+
+            div_dic[k] = ft.Operators.create_scalar_vector_div_func(_lagrange[k],
+                                                                    _lagrange_grad[k],
+                                                                    _edge_func[k],
+                                                                    _edge_func_div[k])
+            edge_one_div_func.append(div_dic[k])
+
+        return edge_one_func, edge_one_div_func
+
+    def _get_edge_func_two_gen(self,quads):
+        edge_quads = quads.edge_quad_pt
+        num_quads = len(edge_quads)
+
+        edge_two_func = [] ; edge_two_div_func = []
+
+        _edge_func = {} ; _edge_func_div = {}
+        _lagrange = {} ; _lagrange_grad = {}
+        func_dic = {} ; div_dic = {}
+
+        for k in range(num_quads):
+            _edge_func[k] = BDMEdgeFuncs._edge_func_two(edge_quads[k % num_quads],
+                                                        edge_quads[(k+1) % num_quads])
+            _edge_func_div[k] = BDMEdgeFuncs._edge_func_div_two(edge_quads[k % num_quads],
+                                                                edge_quads[(k+1) % num_quads])
+
+            _lagrange[k] = self._quad_lagrange_edge_two(edge_quads[k % num_quads],
+                                                        edge_quads[(k+2) % num_quads],
+                                                        edge_quads[(k+3) % num_quads])
+            _lagrange_grad[k] = self._quad_lagrange_edge_two_grad(edge_quads[k % num_quads],
+                                                                  edge_quads[(k+2) % num_quads],
+                                                                  edge_quads[(k+3) % num_quads])
+            key_1 = `k`+'_0'
+            key_2 = `k`+'_1'
+            func_dic[key_1] = lat.Operators.lam_func_product(_lagrange[k],_edge_func[k][0])
+            func_dic[key_2] = lat.Operators.lam_func_product(_lagrange[k],_edge_func[k][1])
+
+            edge_two_func.append(np.array([func_dic[key_1], func_dic[key_2]]))
+
+            div_dic[k] = ft.Operators.create_scalar_vector_div_func(_lagrange[k],
+                                                                    _lagrange_grad[k],
+                                                                    _edge_func[k],
+                                                                    _edge_func_div[k])
+            edge_two_div_func.append(div_dic[k])
+
+        return edge_two_func, edge_two_div_func
+
+    def _get_edge_func_three_gen(self,quads):
+        edge_quads = quads.edge_quad_pt
+        num_quads = len(edge_quads)
+
+        edge_three_func = [] ; edge_three_div_func = []
+
+        _edge_func = {} ; _edge_func_div = {}
+        _lagrange = {} ; _lagrange_grad = {}
+        func_dic = {} ; div_dic = {}
+
+        for k in range(num_quads):
+            _edge_func[k] = BDMEdgeFuncs._edge_func_three(edge_quads[k % num_quads],
+                                                        edge_quads[(k+1) % num_quads])
+            _edge_func_div[k] = BDMEdgeFuncs._edge_func_div_three(edge_quads[k % num_quads],
+                                                                edge_quads[(k+1) % num_quads])
+
+            _lagrange[k] = self._quad_lagrange_edge_three(edge_quads[k % num_quads],
+                                                        edge_quads[(k+2) % num_quads],
+                                                        edge_quads[(k+3) % num_quads])
+            _lagrange_grad[k] = self._quad_lagrange_edge_three_grad(edge_quads[k % num_quads],
+                                                                  edge_quads[(k+2) % num_quads],
+                                                                  edge_quads[(k+3) % num_quads])
+            key_1 = `k`+'_0'
+            key_2 = `k`+'_1'
+            func_dic[key_1] = lat.Operators.lam_func_product(_lagrange[k], _edge_func[k][0])
+            func_dic[key_2] = lat.Operators.lam_func_product(_lagrange[k], _edge_func[k][1])
+            edge_three_func.append(np.array([func_dic[key_1], func_dic[key_2]]))
+
+            div_dic[k] = ft.Operators.create_scalar_vector_div_func(_lagrange[k],
+                                                                    _lagrange_grad[k],
+                                                                    _edge_func[k],
+                                                                    _edge_func_div[k])
+            edge_three_div_func.append(div_dic[k])
+
+        return edge_three_func, edge_three_div_func
 
     def _get_edge_func_one(self,q0,q1,q2):
         quad_pair_lst = [((q0,q1) , (q0,q2)),
