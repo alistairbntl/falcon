@@ -195,6 +195,37 @@ def test_p1basis_2d():
             elif i==2:
                 np.array_equal(test['dvals'],(1.,1.))
 
+@pytest.mark.p2basis
+def test_p2basis_2d():
+    # build test on reference element
+    reference_element = mt.ReferenceElement()
+    P2_basis = bdm.P2Basis_2D()
+    mapping = mpt.ReferenceElementMap(reference_element)
+    p1 = mt.QuadraturePoint(0.5, 0.5, 1.) ; p2 = mt.QuadraturePoint(0., 0.5, 1.)
+    p3 = mt.QuadraturePoint(0.5, 0.0, 1.) ; p4 = mt.QuadraturePoint(0., 0.0, 1.)
+    p5 = mt.QuadraturePoint(1.0, 0.0, 1.) ; p6 = mt.QuadraturePoint(0., 1.0, 1.)
+    quad_pts = [p1, p2, p3, p4, p5, p6]
+    val_types = ['vals']
+    for i in range(P2_basis.get_num_dof()):
+        for j, pt in enumerate(quad_pts):
+            test = P2_basis.get_element_vals(i,
+                                             pt,
+                                             mapping,
+                                             val_types)
+            if i==j:
+                assert (test['vals']-1.) < 1.e-8
+            else:
+                assert (test['vals']-0.) < 1.e-8
+    # TODO - add gradients e.g. :
+
+    #         if i==0:
+    #             np.array_equal(test['dvals'],(-1.,-1.))
+    #         elif i==1:
+    #             np.array_equal(test['dvals'],(0.,-2.))
+    #         elif i==2:
+    #             np.array_equal(test['dvals'],(1.,1.))
+
+
 @pytest.mark.bdm
 def test_bdm_tens_basis_1():
     bdm_tens_basis = bdm.BDMTensBasis(1)
@@ -375,4 +406,125 @@ def test_BDM2_tens_basis_1():
                                                            val_types)
             assert np.array_equal(vals['vals'], vals_tens_1['vals'][0])
             assert np.array_equal(vals['vals'], vals_tens_2['vals'][1])            
-            
+
+@pytest.mark.bdm3
+def test_BDM3_basis_1():
+    bdm3_basis = bdm.BDMBasis(3)
+    
+    p1 = mt.Point(1.,0.) ; p2 = mt.Point(1.,1.) ; p3 = mt.Point(0.5,0.5)
+    element = mt.Element([p1,p2,p3])
+    mapping = mpt.ReferenceElementMap(element)
+    quadrature = quad.Quadrature(5)
+    val_types = ['vals']
+
+    assert bdm3_basis.get_num_dof() == 20
+
+    pt = quadrature._element_quad_pts[0]
+    edge_pts = quadrature.edge_quad_pt
+
+    def t_quad_pt(quad_pt):
+        vals = bdm3_basis.get_element_vals(18, quad_pt, mapping, val_types)
+        assert la.Operators.l2_norm(vals['vals']) <= 1.0e-12
+        vals = bdm3_basis.get_element_vals(19, quad_pt, mapping, val_types)
+        assert la.Operators.l2_norm(vals['vals']) <= 1.0e-12
+
+    # test bubble functions vanish on edges
+    for pt in edge_pts:
+        x = 1- pt ; y = pt
+        quad_pt = mt.QuadraturePoint(x,y)
+        t_quad_pt(quad_pt)
+        x = 0. ; y = pt
+        quad_pt = mt.QuadraturePoint(x,y)
+        t_quad_pt(quad_pt)
+        x = pt ; y = 0.
+        quad_pt = mt.QuadraturePoint(x,y)
+        t_quad_pt(quad_pt)
+#    for i in range(bdm3_basis.get_num_dof()):
+#        j = i / 3 ; k = i % 3
+#        for pt in quadrature.get_element_quad_pts():
+#            vals = bdm2_basis.get_element_vals(i,
+#                                               pt,
+#                                               mapping,
+#                                               val_types)
+
+@pytest.mark.bdm3
+def test_BDM3_basis_2(bdm3_edge_tests):
+    bdm3_basis, quadrature, reference_element = bdm3_edge_tests
+    reference_element.set_edge_quad_pts(quadrature)
+    for edge_0 in range(3):
+        for edge_1 in range(3):
+            func_0 = bdm3_basis.get_edge_normal_func(edge_1,edge_0,0)
+            func_1 = bdm3_basis.get_edge_normal_func(edge_1,edge_0,1)
+            func_2 = bdm3_basis.get_edge_normal_func(edge_1,edge_0,2)
+            func_3 = bdm3_basis.get_edge_normal_func(edge_1,edge_0,3)
+            for idx in range(4):
+                pt = reference_element.get_lagrange_quad_point(edge_1,idx)
+                for int_func_idx in range(8):
+                    int_func_normal = bdm3_basis.get_edge_normal_func(edge_1,'interior',int_func_idx)
+                    assert abs(int_func_normal(pt[0],pt[1])) <= 1.0e-12
+                if edge_0 == edge_1 and edge_0 == 0:
+                    if idx==0:
+                        assert abs(func_0(pt[0],pt[1])-1.) <= 1.0e-12
+                        assert abs(func_1(pt[0],pt[1])-0.) <= 1.0e-12
+                        assert abs(func_2(pt[0],pt[1])-0.0) <= 1.0e-12
+                        assert abs(func_3(pt[0],pt[1])-0.0) <= 1.0e-12                        
+                    if idx==1:
+                        assert abs(func_0(pt[0],pt[1])-0.) <= 1.0e-12
+                        assert abs(func_1(pt[0],pt[1])-1.) <= 1.0e-12
+                        assert abs(func_2(pt[0],pt[1])-0.) <= 1.0e-12
+                        assert abs(func_3(pt[0],pt[1])-0.) <= 1.0e-12                        
+                    if idx==2:
+                        assert abs(func_0(pt[0],pt[1])-0.) <= 1.0e-12
+                        assert abs(func_1(pt[0],pt[1])-0.) <= 1.0e-12
+                        assert abs(func_2(pt[0],pt[1])-1.) <= 1.0e-12
+                        assert abs(func_3(pt[0],pt[1])-0.) <= 1.0e-12                        
+                    if idx==3:
+                        assert abs(func_0(pt[0],pt[1])-0.) <= 1.0e-12
+                        assert abs(func_1(pt[0],pt[1])-0.) <= 1.0e-12
+                        assert abs(func_2(pt[0],pt[1])-0.) <= 1.0e-12
+                        assert abs(func_3(pt[0],pt[1])-1.) <= 1.0e-12                        
+                elif edge_0 == edge_1 and edge_0==1:
+                    if idx==0:
+                        assert abs(func_0(pt[0],pt[1])-1.) <= 1.0e-12
+                        assert abs(func_1(pt[0],pt[1])-0.) <= 1.0e-12
+                        assert abs(func_2(pt[0],pt[1])-0.) <= 1.0e-12
+                        assert abs(func_3(pt[0],pt[1])-0.) <= 1.0e-12                        
+                    if idx==1:
+                        assert abs(func_0(pt[0],pt[1])-0.) <= 1.0e-12
+                        assert abs(func_1(pt[0],pt[1])-1.) <= 1.0e-12
+                        assert abs(func_2(pt[0],pt[1])-0.) <= 1.0e-12
+                        assert abs(func_3(pt[0],pt[1])-0.) <= 1.0e-12                        
+                    if idx==2:
+                        assert abs(func_0(pt[0],pt[1])-0.) <= 1.0e-12
+                        assert abs(func_1(pt[0],pt[1])-0.) <= 1.0e-12
+                        assert abs(func_2(pt[0],pt[1])-1.) <= 1.0e-12
+                        assert abs(func_3(pt[0],pt[1])-0.) <= 1.0e-12
+                    if idx==3:
+                        assert abs(func_0(pt[0],pt[1])-0.) <= 1.0e-12
+                        assert abs(func_1(pt[0],pt[1])-0.) <= 1.0e-12
+                        assert abs(func_2(pt[0],pt[1])-0.) <= 1.0e-12
+                        assert abs(func_3(pt[0],pt[1])-1.) <= 1.0e-12                        
+                elif edge_0 == edge_1 and edge_0 == 2:
+                    if idx==0:
+                        assert abs(func_0(pt[0],pt[1])-1.) <= 1.0e-12
+                        assert abs(func_1(pt[0],pt[1])-0.) <= 1.0e-12
+                        assert abs(func_2(pt[0],pt[1])-0.) <= 1.0e-12
+                        assert abs(func_3(pt[0],pt[1])-0.) <= 1.0e-12                        
+                    if idx==1:
+                        assert abs(func_0(pt[0],pt[1])-0.) <= 1.0e-12
+                        assert abs(func_1(pt[0],pt[1])-1.) <= 1.0e-12
+                        assert abs(func_2(pt[0],pt[1])-0.) <= 1.0e-12
+                        assert abs(func_3(pt[0],pt[1])-0.) <= 1.0e-12                        
+                    if idx==2:
+                        assert abs(func_0(pt[0],pt[1])-0.) <= 1.0e-12
+                        assert abs(func_1(pt[0],pt[1])-0.) <= 1.0e-12
+                        assert abs(func_2(pt[0],pt[1])-1.) <= 1.0e-12
+                        assert abs(func_3(pt[0],pt[1])-0.) <= 1.0e-12
+                    if idx==3:
+                        assert abs(func_0(pt[0],pt[1])-0.) <= 1.0e-12
+                        assert abs(func_1(pt[0],pt[1])-0.) <= 1.0e-12
+                        assert abs(func_2(pt[0],pt[1])-0.) <= 1.0e-12
+                        assert abs(func_3(pt[0],pt[1])-1.) <= 1.0e-12
+                else:
+                    assert abs(func_0(pt[0],pt[1])) <= 1.0e-12
+                    assert abs(func_1(pt[0],pt[1])) <= 1.0e-12
