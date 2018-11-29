@@ -422,16 +422,16 @@ class P2Basis_2D(Basis):
         return 6
 
     def get_num_interior_dof(self):
-        return 0
+        return 6
 
     def get_num_dof_per_edge(self):
-        return 1
+        return 0
 
     def get_num_edge_dof(self):
-        return 3
+        return 0
 
     def get_num_dof_per_node(self):
-        return 1
+        return 0
 
     def _initialize_element_functions(self):
         self._basis_funcs = [lambda xi, eta: 4*xi*eta,
@@ -712,8 +712,6 @@ class BDMBasis(Basis):
                                int_func[5],
                                int_func[6],
                                int_func[7]]
-            
-
 
     def _set_basis_div_lst(self):
         if self.get_degree() == 1:
@@ -1004,10 +1002,14 @@ class BDMIntFuncs(BDMSubFuncs):
                                                          ell[0],
                                                          grad_p1_basis_eta_0,
                                                          grad_ell[0])
-            self.int_div_funcs.append( self._get_int_div_func(phi,
-                                                              grad_phi,
-                                                              e[0],
-                                                              e_div[0]))
+            int_div_func_1 = self._get_int_div_func(phi,
+                                                    grad_phi,
+                                                    e[0],
+                                                    e_div[0])
+#            qe1 = self.quadrature._element_quad_pts[2]
+#            x1 = qe1.vals[0] ; y1 = qe1.vals[1]
+#            import pdb ; pdb.set_trace()
+            self.int_div_funcs.append( int_div_func_1 )
 
             f21 = lambda xi, eta: p1_basis_xi[0](xi, eta) * f[2](xi, eta)
             f22 = lambda xi, eta: p1_basis_xi[0](xi, eta) * f[3](xi, eta)
@@ -1038,8 +1040,8 @@ class BDMIntFuncs(BDMSubFuncs):
                                                               e_div[2]))
             
 
-            f41 = lambda xi, eta: p1_basis_eta[1](eta, xi) * f[0](xi, eta)
-            f42 = lambda xi, eta: p1_basis_eta[1](eta, xi) * f[1](xi, eta)
+            f41 = lambda xi, eta: p1_basis_eta[1](xi, eta) * f[0](xi, eta)
+            f42 = lambda xi, eta: p1_basis_eta[1](xi, eta) * f[1](xi, eta)
             self.int_funcs.append( np.array([f41, f42]) )
 
             phi = lambda xi, eta: p1_basis_eta[1](xi, eta) * ell[0](xi, eta)
@@ -1047,10 +1049,19 @@ class BDMIntFuncs(BDMSubFuncs):
                                                          ell[0],
                                                          grad_p1_basis_eta_1,
                                                          grad_ell[0])
-            self.int_div_funcs.append( self._get_int_div_func(phi,
-                                                              grad_phi,
-                                                              e[0],
-                                                              e_div[0]) )
+            x0 = 0.33333333333333 ; y0 =0.33333333333333
+            x1 = 0.47014206410511 ; y1 =0.47014206410511
+            x2 = 0.47014206410511 ; y2 =0.05971587178977
+            x3 = 0.05971587178977 ; y3 =0.47014206410511
+            x4 = 0.10128650732346 ; y4 =0.10128650732346
+            x5 = 0.10128650732346 ; y5 =0.79742698535309
+            x6 = 0.79742698535309 ; y6 =0.10128650732346
+            int_func4_div = self._get_int_div_func(phi,
+                                                   grad_phi,
+                                                   e[0],
+                                                   e_div[0])
+#            import pdb ; pdb.set_trace()            
+            self.int_div_funcs.append( int_func4_div)
             
             f51 = lambda xi, eta: p1_basis_xi[1](xi, eta) * f[2](xi, eta)
             f52 = lambda xi, eta: p1_basis_xi[1](xi, eta) * f[3](xi, eta)
@@ -1103,14 +1114,20 @@ class BDMIntFuncs(BDMSubFuncs):
             ell3 = lambda xi, eta: eta
             grad_ell3 = [lambda xi, eta: 0., lambda xi, eta: 1.]
 
-            e0 = [BDMEdgeFuncs._edge_func_one(q0,q1)[0],
-                  BDMEdgeFuncs._edge_func_one(q0,q1)[1]]
+            e00 = BDMEdgeFuncs._edge_func_one(q0,q1)[0]
+            e01 = BDMEdgeFuncs._edge_func_one(q0,q1)[1]
+            e0 = [e00, e01]
             e0_div = BDMEdgeFuncs._edge_func_div_one(q0,q1)
-            e1 = [BDMEdgeFuncs._edge_func_two(q0,q1)[0],
-                  BDMEdgeFuncs._edge_func_two(q0,q1)[1]]
+
+            e10 = BDMEdgeFuncs._edge_func_two(q0,q1)[0]
+            e11 = BDMEdgeFuncs._edge_func_two(q0,q1)[1]
+            e1 = [e10, e11]
+                  
             e1_div = BDMEdgeFuncs._edge_func_div_two(q0,q1)
-            e2 = [BDMEdgeFuncs._edge_func_three(q0,q1)[0],
-                  BDMEdgeFuncs._edge_func_three(q0,q1)[1]]
+
+            e20 = BDMEdgeFuncs._edge_func_three(q0,q1)[0]
+            e22 = BDMEdgeFuncs._edge_func_three(q0,q1)[1]
+            e2 = [e20, e22]
             e2_div = BDMEdgeFuncs._edge_func_div_three(q0,q1)
 
             f11 = lambda xi, eta: ell1(xi, eta) * e0[0](xi, eta) ; f12 = lambda xi, eta: ell1(xi, eta) * e0[1](xi, eta)
@@ -1229,8 +1246,8 @@ class BDMEdgeFuncs(BDMSubFuncs):
 
     @staticmethod
     def _quad_lagrange_edge_three_grad(p1,p2,p3):
-        return [lambda xi, eta: 0.,
-                lambda xi, eta: -(p2+p3-2*xi) / ( (p1-p2)*(p1-p3) ) ]
+        return [lambda xi, eta: -(p2+p3-2*xi) / ( (p1-p2)*(p1-p3) ),
+                lambda xi, eta: 0. ]
 
     
     def _initialize_edge_functions(self):
@@ -1302,6 +1319,14 @@ class BDMEdgeFuncs(BDMSubFuncs):
                 self.edge_div_funcs[2].append(func)
 
     def _get_edge_func_one_gen(self,quads):
+        x0 = 0.33333333333333 ; y0 =0.33333333333333
+        x1 = 0.47014206410511 ; y1 =0.47014206410511
+        x2 = 0.47014206410511 ; y2 =0.05971587178977
+        x3 = 0.05971587178977 ; y3 =0.47014206410511
+        x4 = 0.10128650732346 ; y4 =0.10128650732346
+        x5 = 0.10128650732346 ; y5 =0.79742698535309
+        x6 = 0.79742698535309 ; y6 =0.10128650732346
+
         edge_quads = quads.edge_quad_pt
         num_quads = len(edge_quads)
 
@@ -1334,8 +1359,8 @@ class BDMEdgeFuncs(BDMSubFuncs):
                                                                     _lagrange_grad[k],
                                                                     _edge_func[k],
                                                                     _edge_func_div[k])
+            
             edge_one_div_func.append(div_dic[k])
-
         return edge_one_func, edge_one_div_func
 
     def _get_edge_func_two_gen(self,quads):
@@ -1387,16 +1412,16 @@ class BDMEdgeFuncs(BDMSubFuncs):
 
         for k in range(num_quads):
             _edge_func[k] = BDMEdgeFuncs._edge_func_three(edge_quads[k % num_quads],
-                                                        edge_quads[(k+1) % num_quads])
+                                                          edge_quads[(k+1) % num_quads])
             _edge_func_div[k] = BDMEdgeFuncs._edge_func_div_three(edge_quads[k % num_quads],
-                                                                edge_quads[(k+1) % num_quads])
+                                                                  edge_quads[(k+1) % num_quads])
 
             _lagrange[k] = self._quad_lagrange_edge_three(edge_quads[k % num_quads],
-                                                        edge_quads[(k+2) % num_quads],
-                                                        edge_quads[(k+3) % num_quads])
+                                                          edge_quads[(k+2) % num_quads],
+                                                          edge_quads[(k+3) % num_quads])
             _lagrange_grad[k] = self._quad_lagrange_edge_three_grad(edge_quads[k % num_quads],
-                                                                  edge_quads[(k+2) % num_quads],
-                                                                  edge_quads[(k+3) % num_quads])
+                                                                    edge_quads[(k+2) % num_quads],
+                                                                    edge_quads[(k+3) % num_quads])
             key_1 = `k`+'_0'
             key_2 = `k`+'_1'
             func_dic[key_1] = lat.Operators.lam_func_product(_lagrange[k], _edge_func[k][0])
