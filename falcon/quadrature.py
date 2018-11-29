@@ -59,7 +59,33 @@ class Quadrature():
                                       mt.QuadraturePoint(0.231933368553031, 0.109039009072877, 1./12.),
                                       mt.QuadraturePoint(0.109039009072877, 0.659027622374092, 1./12.),
                                       mt.QuadraturePoint(0.109039009072877, 0.231933368553031, 1./12.)]
-            
+        if self.n==5:
+            self.edge_quad_pt = [0.5 - math.sqrt(525 + 70*math.sqrt(30)) / 70.,
+                                 0.5 - math.sqrt(525 - 70*math.sqrt(30)) / 70.,
+                                 0.5 + math.sqrt(525 - 70*math.sqrt(30)) / 70.,
+                                 0.5 + math.sqrt(525 + 70*math.sqrt(30)) / 70.]
+            self.edge_quad_wght = [(18 - math.sqrt(30))/72. , (18 + math.sqrt(30))/72,
+                                   (18 + math.sqrt(30))/72. , (18 - math.sqrt(30))/72.]
+            # self._element_quad_pts = [mt.QuadraturePoint(0.33333333333333,0.33333333333333,0.22500000000000*.5),
+            #                           mt.QuadraturePoint(0.47014206410511,0.47014206410511,0.13239415278851*.5),
+            #                           mt.QuadraturePoint(0.47014206410511,0.05971587178977,0.13239415278851*.5),
+            #                           mt.QuadraturePoint(0.05971587178977,0.47014206410511,0.13239415278851*.5),
+            #                           mt.QuadraturePoint(0.10128650732346,0.10128650732346,0.12593918054483*.5),
+            #                           mt.QuadraturePoint(0.10128650732346,0.79742698535309,0.12593918054483*.5),
+            #                           mt.QuadraturePoint(0.79742698535309,0.10128650732346,0.12593918054483*.5)]
+
+            self._element_quad_pts = [mt.QuadraturePoint(0.24928674517091,0.24928674517091,0.11678627572638*.5),
+                                      mt.QuadraturePoint( 0.2492867451709, 0.5014265096581, 0.11678627572638*.5),
+                                      mt.QuadraturePoint( 0.5014265096581, 0.2492867451709, 0.11678627572638*.5),
+                                      mt.QuadraturePoint( 0.0630890144915, 0.0630890144915, 0.05084490637021*.5),
+                                      mt.QuadraturePoint( 0.0630890144915, 0.8738219710170, 0.05084490637021*.5),
+                                      mt.QuadraturePoint( 0.8738219710170, 0.0630890144915, 0.05084490637021*.5),
+                                      mt.QuadraturePoint( 0.3103524510337, 0.6365024991214, 0.08285107561837*.5),
+                                      mt.QuadraturePoint( 0.6365024991214, 0.0531450498448, 0.08285107561837*.5),
+                                      mt.QuadraturePoint( 0.0531450498448, 0.3103524510337, 0.08285107561837*.5),
+                                      mt.QuadraturePoint( 0.6365024991214, 0.3103524510337, 0.08285107561837*.5),
+                                      mt.QuadraturePoint( 0.3103524510337, 0.0531450498448, 0.08285107561837*.5),
+                                      mt.QuadraturePoint( 0.0531450498448, 0.6365024991214, 0.08285107561837*.5)]
         else:
             pass
 
@@ -84,7 +110,6 @@ class Quadrature():
 
         n0 = edge.get_node(0)
         n1 = edge.get_node(1)
-
         val = self.edge_quad_pt[quad_num]
         wght = self.edge_quad_wght[quad_num]
 

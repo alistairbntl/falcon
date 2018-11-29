@@ -229,6 +229,48 @@ class SolutionHandler(object):
             sol_val += 1./Jt_det * div
         return sol_val
 
+    def get_bdm_div_solution_approx(self,
+                                    element,
+                                    reference_map,
+                                    piola_map,
+                                    quad_pt):
+        """
+        This function uses the finite element solution and basis to get the
+        complete solution approximation.
+
+        Arguments
+        ---------
+        element :
+        reference_map :
+        piola_map :
+        quad_pt : quad_pt
+        """
+        basis = self.get_sub_basis(0)
+        ele_quad_pt = reference_map.apply_affine_map(quad_pt.vals[0],
+                                                     quad_pt.vals[1])
+        # TODO - ARB, I think the basis would be better provided as a function call
+        # rather than assuming a specific basis ordering.
+        value_types_solution = ['vals', 'Jt_vals', 'div', '|Jt|', 'quad_wght']
+        sol_val = 0
+
+        for i in range(basis.get_num_dof()):
+            basis_val = basis.get_element_vals(i,
+                                               quad_pt,
+                                               reference_map,
+                                               value_types_solution)
+            Jt_det = basis_val['|Jt|']
+            basis_val = piola_map.correct_div_space_vals(basis_val,
+                                                         i,
+                                                         basis)
+
+            j = self.get_dof_handler().get_local_2_global(element.get_global_idx(),
+                                                          i)
+            div = self.get_solution().scale_basis_by_solution(j,
+                                                              basis_val['div'])
+            sol_val += 1./Jt_det * div
+        return sol_val
+    
+
     def get_bdm_axi_div_solution_approx(self,
                                         element,
                                         reference_map,
@@ -344,8 +386,8 @@ class DarcyErrorHandler(SolutionHandler):
         """
 
         mesh = self.get_mesh()
-        k = self.get_basis()[0].get_degree()
-        quadrature = quad.Quadrature(4)
+#        k = self.get_basis()[0].get_degree()
+        quadrature = quad.Quadrature(5)
         # the choice of quadrature point is a bit trickier when r \neq 0
         # i think this should work for many cases, but you do need to be
         # careful
@@ -380,8 +422,9 @@ class DarcyErrorHandler(SolutionHandler):
                 u_error_sq = (true_solution_vals[0]-sol_val[0])**2
                 v_error_sq = (true_solution_vals[1]-sol_val[1])**2
                 div_error_sq = (true_solution_div_vals[0]-div_val)**2
-                element_errors[eN] += (u_error_sq + v_error_sq + div_error_sq)*r_val*ele_quad_pt.get_quad_weight()
+                element_errors[eN] += (div_error_sq)*r_val*ele_quad_pt.get_quad_weight()
 
+#                element_errors[eN] += (u_error_sq + v_error_sq + div_error_sq)*r_val*ele_quad_pt.get_quad_weight()
         return math.sqrt(element_errors.sum())
         
     def calculate_l2_vel_error(self,
@@ -399,7 +442,7 @@ class DarcyErrorHandler(SolutionHandler):
         mesh = self.get_mesh()
         k = self.get_basis()[0].get_degree()
 #        quadrature = quad.Quadrature(k+1+r)
-        quadrature = quad.Quadrature(4)
+        quadrature = quad.Quadrature(5)
         # the choice of quadrature point is a bit trickier when r \neq 0
         # i think this should work for many cases, but you do need to be
         # careful
@@ -444,7 +487,7 @@ class DarcyErrorHandler(SolutionHandler):
         """
         mesh = self.get_mesh()
         k = self.get_basis()[1].get_degree()
-        quadrature = quad.Quadrature(4)
+        quadrature = quad.Quadrature(5)
 
         num_mesh_elements = mesh.get_num_mesh_elements()
         element_errors = np.zeros(num_mesh_elements)

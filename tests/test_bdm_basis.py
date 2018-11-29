@@ -195,7 +195,7 @@ def test_p1basis_2d():
             elif i==2:
                 np.array_equal(test['dvals'],(1.,1.))
 
-@pytest.mark.p2basis
+@pytest.mark.bdm3
 def test_p2basis_2d():
     # build test on reference element
     reference_element = mt.ReferenceElement()
@@ -226,7 +226,7 @@ def test_p2basis_2d():
     #             np.array_equal(test['dvals'],(1.,1.))
 
 
-@pytest.mark.p2basis
+@pytest.mark.bdm3
 def test_p2basis_2d_2():
     P2_basis = bdm.P2Basis_2D()
     assert P2_basis.get_num_dof() == 6
@@ -456,7 +456,7 @@ def test_BDM3_basis_1():
 #                                               mapping,
 #                                               val_types)
 
-@pytest.mark.bdm3
+@pytest.mark.bdm3_tt
 def test_BDM3_basis_2(bdm3_edge_tests):
     bdm3_basis, quadrature, reference_element = bdm3_edge_tests
     reference_element.set_edge_quad_pts(quadrature)
@@ -537,3 +537,5 @@ def test_BDM3_basis_2(bdm3_edge_tests):
                 else:
                     assert abs(func_0(pt[0],pt[1])) <= 1.0e-12
                     assert abs(func_1(pt[0],pt[1])) <= 1.0e-12
+                    assert abs(func_2(pt[0],pt[1])) <= 1.0e-12
+                    assert abs(func_3(pt[0],pt[1])) <= 1.0e-12

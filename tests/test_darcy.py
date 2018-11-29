@@ -2,6 +2,7 @@ import math
 import pytest
 import numpy as np
 import scipy.sparse.linalg as sp_la
+from fractions import Fraction
 
 from .context import falcon
 from falcon import mesh_tools as mt
@@ -59,11 +60,16 @@ def test_darcy_bdm2_converge_2(darcy_bdm2_p1_structured_converge_1):
     basis, mesh, dof_handler = darcy_bdm2_p1_structured_converge_1
     l2_error = darcy_convergence_script(basis, mesh, dof_handler)
 
-@pytest.mark.darcy_bdm2
+#@pytest.mark.darcy_bdm2
 def test_darcy_partial_bdm2_p1(darcy_bdm2_partial_one_element):
     basis, mesh, dof_handler = darcy_bdm2_partial_one_element
     error = darcy_convergence_script(basis,mesh,dof_handler)
     import pdb ; pdb.set_trace()
+
+@pytest.mark.bdm3_now
+def test_darcy_partial_bdm3_p2(darcy_bdm3_partial_one_element):
+    basis, mesh, dof_handler = darcy_bdm3_partial_one_element
+    error = darcy_convergence_script(basis,mesh,dof_handler)
     
 def darcy_convergence_script(basis, mesh, dof_handler):
 
@@ -104,7 +110,7 @@ def darcy_convergence_script(basis, mesh, dof_handler):
                                     lambda x,y: fy(x,y) + x))    
     
     test_space = basis ; trial_space = basis
-    quadrature = quad.Quadrature(4)
+    quadrature = quad.Quadrature(5)
     reference_element = mt.ReferenceElement()
 
     num_mesh_elements = mesh.get_num_mesh_elements()
@@ -171,7 +177,7 @@ def darcy_convergence_script(basis, mesh, dof_handler):
                     int_val = -(val_dic_trial['vals']
                                 *val_dic_test['div']
                                 *val_dic_test['quad_wght'])
-
+                    
                     j_tmp = j + trial_space[0].get_num_dof()
                     local_matrix_assembler.add_val(i,j_tmp,int_val)
                     # check the non velocity-velocity parts
@@ -196,6 +202,8 @@ def darcy_convergence_script(basis, mesh, dof_handler):
                                *val_dic_test['vals']
                                *val_dic_test['quad_wght'])
                     i_tmp = i + test_space[0].get_num_dof()
+#                    if i==0 and j==15:
+#                        import pdb ; pdb.set_trace()
                     local_matrix_assembler.add_val(i_tmp,j,int_val)
 
         local_matrix_assembler.distribute_local_2_global(eN)
@@ -225,10 +233,25 @@ def darcy_convergence_script(basis, mesh, dof_handler):
         global_rhs.set_value(dof_idx,val)
 
     global_matrix_assembler.solve(global_rhs, solution_vec)
-
+    A = global_matrix_assembler.get_array_rep()
+    import numpy.linalg as npla
+    q, r = npla.qr(A)
+    
     error_calculator = ec.DarcyErrorHandler(mesh,dof_handler,[basis[0],basis[1]],solution_vec)
     l2_vel_error = error_calculator.calculate_l2_vel_error(true_solution)
     hdiv_vel_error = error_calculator.calculate_hdiv_vel_error(true_solution)
     l2_pressure_error = error_calculator.calculate_l2_pressure_error(true_solution)
     return l2_vel_error, hdiv_vel_error, l2_pressure_error
-    
+
+if __name__ =="__main__":
+    h_lst = [1./4.,1./6,1./8,1./10,1./12]
+#    h_lst = [1./4.]
+    for h in h_lst:
+        mesh = mt.StructuredMesh([1.,1.], h)
+        basis = [bdm.BDMBasis(3), bdm.P2Basis_2D()]
+        dof_handler = dof.DOFHandler(mesh,
+                                     basis)
+        l2_error = darcy_convergence_script(basis,
+                                            mesh,
+                                            dof_handler)
+        print 'h : ' + `str(Fraction(h).limit_denominator())` + ' error : ' + `l2_error[0]` + '  ' + `l2_error[1]` + '  ' + `l2_error[2]`

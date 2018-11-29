@@ -1,8 +1,13 @@
+import math
 import numpy as np
 from scipy.sparse import coo_matrix
 import scipy.sparse.linalg as sla
 
 class Operators():
+
+    @staticmethod
+    def l2_norm(v1):
+        return math.sqrt( sum(a**2 for a in v1) )
 
     @staticmethod
     def dot_product(v1,v2):
@@ -11,12 +16,22 @@ class Operators():
     @staticmethod
     def tensor_dot_product(tens1, tens2):
         a = [tens1[0][i]*tens2[0][i]+tens1[1][i]*tens1[1][i] for i in [0,1]]
-        import pdb ; pdb.set_trace()
         return sum(a)
+
+    @staticmethod
+    def scalar_product_grad(f1, f2, grad_f1, grad_f2):
+        p1 = lambda x,y: grad_f1[0](x,y) * f2(x,y) + grad_f2[0](x,y) * f1(x,y)
+        p2 = lambda x,y: grad_f1[1](x,y) * f2(x,y) + grad_f2[1](x,y) * f1(x,y)
+        return [p1, p2]
 
     @staticmethod
     def lam_func_dot_product(f1,f2):
         f_new = lambda x,y : f1[0](x,y)*f2[0](x,y) + f1[1](x,y)*f2[1](x,y) 
+        return f_new
+
+    @staticmethod
+    def lam_func_product(f1,f2):
+        f_new = lambda x,y : f1(x,y)*f2(x,y)
         return f_new
 
     @staticmethod

@@ -86,6 +86,14 @@ class P0Basis_2D(Basis):
         local_functions = {'vals' : self.get_func_val}
         self._function_dispatcher.update(local_functions)
 
+    def get_func_val(self,
+                     basis_func_idx,
+                     quad_pt,
+                     mapping):
+        basis_func = self.get_basis_func(basis_func_idx)
+        xi = quad_pt[0] ; eta = quad_pt[1]
+        return basis_func(xi, eta)
+
     def _set_basis_lst(self):
         if self.get_degree() == 0:
             basis_func = self._basis_funcs

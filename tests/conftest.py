@@ -149,6 +149,15 @@ def basic_mesh_s1_bdm1_partial_r1():
     yield basis, mesh, dof_handler
 
 @pytest.fixture(scope='module')
+def basic_mesh_s1_bdm1_partial_r1():
+    mesh = mt.OneElementMesh()
+    basis = [bdm.BDMBasis(3)]
+    dof_handler = dof.DOFHandler(mesh,
+                                 basis)
+    yield basis, mesh, dof_handler
+
+    
+@pytest.fixture(scope='module')
 def basic_mesh_s1_bdm2_partial_r1():
     test_mesh = 'test_mesh.1'
     mesh = mt.Mesh(test_mesh)
@@ -189,6 +198,15 @@ def basic_mesh_s1_bdm2_p1():
     test_mesh = 'test_struc_mesh.2'
     mesh = mt.Mesh(test_mesh)
     basis = [bdm.BDMBasis(2), bdm.P1Basis_2D()]
+    dof_handler = dof.DOFHandler(mesh,
+                                 basis)
+    yield basis, mesh, dof_handler
+
+@pytest.fixture(scope='module')
+def basic_mesh_s1_bdm3_p2():
+    test_mesh = 'test_struc_mesh.2'
+    mesh = mt.Mesh(test_mesh)
+    basis = [bdm.BDMBasis(3), bdm.P2Basis_2D()]
     dof_handler = dof.DOFHandler(mesh,
                                  basis)
     yield basis, mesh, dof_handler
@@ -242,6 +260,13 @@ def bdm_edge_tests():
     reference_element = mt.ReferenceElement()
     yield (BDM1_basis,quadrature,reference_element)
 
+@pytest.fixture(scope="module")
+def bdm3_edge_tests():
+    BDM1_basis = bdm.BDMBasis(3)
+    quadrature = quad.Quadrature(5)
+    reference_element = mt.ReferenceElement()
+    yield (BDM1_basis,quadrature,reference_element)
+    
 @pytest.fixture(scope="module")
 def bdm2_edge_tests():
     BDM2_basis = bdm.BDMBasis(2)
@@ -343,6 +368,16 @@ def darcy_bdm2_partial_one_element():
     dof_handler = dof.DOFHandler(mesh,
                                  basis)
     yield basis, mesh, dof_handler
+
+@pytest.fixture(scope='module')
+def darcy_bdm3_partial_one_element():
+    mesh = mt.OneElementMesh()
+    basis = [bdm.BDMBasis(3),
+             bdm.P2Basis_2D()]
+    dof_handler = dof.DOFHandler(mesh,
+                                 basis)
+    yield basis, mesh, dof_handler
+
     
 @pytest.fixture(scope='module')
 def basic_mesh2_bdm1_p0_elasticity():
