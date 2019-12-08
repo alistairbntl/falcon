@@ -4,7 +4,7 @@ import scipy
 import math
 
 import falcon
-import mesh_tools as mt
+from falcon import mesh_tools as mt
 
 class Quadrature():
 

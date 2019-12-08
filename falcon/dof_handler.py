@@ -1,5 +1,7 @@
 import numpy as np
-import mapping_tools as mpt
+
+import falcon
+from falcon import mapping_tools as mpt
 
 class DOFHandler():
 
@@ -50,7 +52,11 @@ class DOFHandler():
                                           dof_idx,
                                           global_idx + translation_factor)
                         if node.is_node_bdy():
-                            bdy_lst.add((global_idx+translation_factor,'n',node.get_global_idx()))
+                            bdy_lst.add((global_idx+translation_factor,
+                                         'n',
+                                         node.get_global_idx(),
+                                         node.is_node_bdy,
+                                         i))
                         dof_idx += 1
 
                 for i in range(num_dof_per_edge):
@@ -62,7 +68,11 @@ class DOFHandler():
                                           dof_idx,
                                           global_idx + translation_factor)
                         if edge.is_edge_bdy():
-                            bdy_lst.add((global_idx+translation_factor,'e',edge.get_global_idx()))
+                            bdy_lst.add((global_idx+translation_factor,
+                                         'e',
+                                         edge.get_global_idx(),
+                                         edge.is_edge_bdy(),
+                                         i))
                         dof_idx += 1
 
                 for i in range(num_interior_dof):
@@ -75,7 +85,15 @@ class DOFHandler():
                                       dof_idx,
                                       global_idx + translation_factor)
                     if cur_element.is_bdy_element():
-                        bdy_lst.add((global_idx+translation_factor,'E',cur_element.get_global_idx()))
+                        element_bdy = 4
+                        for edge in cur_element.get_edges():
+                            if edge.is_edge_bdy() > 0:
+                                element_bdy = min(element_bdy, edge.is_edge_bdy())
+                        bdy_lst.add((global_idx+translation_factor,
+                                     'E',
+                                     cur_element.get_global_idx(),
+                                     element_bdy,
+                                     i))
                     dof_idx += 1
 
                 self._set_bdy_dof_idx(bdy_lst,basis.get_name())

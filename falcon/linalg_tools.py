@@ -73,7 +73,7 @@ class Operators():
         val : 
             Inner product value
         """
-        n = sig_tens.shape[0]
+        n = sig_tens.shape[0]+1
         sig_tens_dev = Operators.deviatoric(sig_tens)
         tau_tens_dev = Operators.deviatoric(tau_tens)
 
@@ -95,7 +95,7 @@ class Operators():
         trace_product = sig_tens.trace() * tau_tens.trace()
 
         p1 = (1./(2*mu)) * tens_product
-        p2 = lam / (4*mu*(mu+lam)) * trace_product
+        p2 = lam / (2*mu*(2*mu+3*lam)) * trace_product
 
         return p1 - p2
     
@@ -257,7 +257,7 @@ class GlobalRHS():
         self._rhs_vec[idx] = val
 
     def view(self):
-        print self._rhs_vec
+        print(self._rhs_vec)
 
 class DiscreteSolutionVector():
 

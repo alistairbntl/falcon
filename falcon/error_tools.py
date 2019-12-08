@@ -3,9 +3,10 @@ import csv
 import numpy as np
 import sys
 
-import quadrature as quad
-import mesh_tools as mt
-import mapping_tools as mpt
+import falcon
+from falcon import quadrature as quad
+from falcon import mesh_tools as mt
+from falcon import mapping_tools as mpt
 
 class SolutionHandler(object):
 
@@ -220,6 +221,7 @@ class SolutionHandler(object):
             basis_val = piola_map.correct_div_space_vals(basis_val,
                                                          i,
                                                          basis)
+            div_val = basis_val['div']
             div_val = basis_val['div'] + (1./ele_quad_pt[0])*basis_val['Jt_vals'][:,0]
 
             j = self.get_dof_handler().get_local_2_global(element.get_global_idx(),
@@ -422,7 +424,7 @@ class DarcyErrorHandler(SolutionHandler):
                 u_error_sq = (true_solution_vals[0]-sol_val[0])**2
                 v_error_sq = (true_solution_vals[1]-sol_val[1])**2
                 div_error_sq = (true_solution_div_vals[0]-div_val)**2
-                element_errors[eN] += (div_error_sq)*r_val*ele_quad_pt.get_quad_weight()
+                element_errors[eN] += (u_error_sq + v_error_sq + div_error_sq)*r_val*ele_quad_pt.get_quad_weight()
 
 #                element_errors[eN] += (u_error_sq + v_error_sq + div_error_sq)*r_val*ele_quad_pt.get_quad_weight()
         return math.sqrt(element_errors.sum())
@@ -526,7 +528,7 @@ class ElasticityErrorHandler(SolutionHandler):
                                                     dof_handler,
                                                     basis,
                                                     solution)
-        self.quad_degree = 4
+        self.quad_degree = 5
 
     def calculate_stress_error(self,
                                true_solution,
@@ -599,7 +601,7 @@ class ElasticityErrorHandler(SolutionHandler):
                                                  r=0):
         mesh = self.get_mesh()
         k = self.get_basis()[0].get_degree()
-        quadrature = quad.Quadrature(4)
+        quadrature = quad.Quadrature(5)
 
         element = mesh.get_element(eN)
         reference_map = mpt.ReferenceElementMap(element)
@@ -625,7 +627,7 @@ class ElasticityErrorHandler(SolutionHandler):
                                    r=0):
         mesh = self.get_mesh()
         k = self.get_basis()[0].get_degree()
-        quadrature = quad.Quadrature(self.quad_degree)
+        quadrature = quad.Quadrature(5)
 
         num_mesh_elements = mesh.get_num_mesh_elements()
         element_errors = np.zeros(num_mesh_elements)
@@ -637,7 +639,13 @@ class ElasticityErrorHandler(SolutionHandler):
             piola_map = mpt.PiolaMap(element)
 
             for quad_pt in quadrature.get_element_quad_pts():
-                sol_val = self.get_bdm_tens_div_solution_approx(element,
+                if r==1:
+                    sol_val = self.get_bdm_tens_div_solution_approx(element,
+                                                                    reference_map,
+                                                                    piola_map,
+                                                                    quad_pt)
+                elif r==0:
+                    sol_val = self.get_bdm_tens_solution_approx(element,
                                                                 reference_map,
                                                                 piola_map,
                                                                 quad_pt)
@@ -662,6 +670,7 @@ class ElasticityErrorHandler(SolutionHandler):
         num_mesh_elements = mesh.get_num_mesh_elements()
         element_errors = np.zeros(num_mesh_elements)
         basis = self.get_sub_basis(1)
+        basis_2 = self.get_sub_basis(2)
 
         for eN in range(num_mesh_elements):
             element = mesh.get_element(eN)
@@ -671,14 +680,18 @@ class ElasticityErrorHandler(SolutionHandler):
                 sol_val = self.get_element_solution_approx(element=element,
                                                            basis_idx=1,
                                                            quad_pt=quad_pt)
+                sol_val_2 = self.get_element_solution_approx(element=element,
+                                                             basis_idx=2,
+                                                             quad_pt=quad_pt)
+#                import pdb ; pdb.set_trace()
 
                 ele_quad_pt = quadrature.get_quad_on_element(reference_map,
                                                              quad_pt)
                 r_val = ele_quad_pt[0]**r
 
                 true_solution_vals = true_solution.get_f_eval(ele_quad_pt)
-                u1_error_sq = (true_solution_vals[0] - sol_val[0])**2
-                u2_error_sq = (true_solution_vals[1] - sol_val[1])**2
+                u1_error_sq = (true_solution_vals[0] - ele_quad_pt[1]*sol_val_2[1][0] - sol_val[0])**2
+                u2_error_sq = (true_solution_vals[1] + ele_quad_pt[0]*sol_val_2[1][0] - sol_val[1])**2
                 element_errors[eN] += (u1_error_sq + u2_error_sq) * r_val * ele_quad_pt.get_quad_weight()
         return math.sqrt(element_errors.sum())
 
