@@ -1,3 +1,12 @@
+"""
+The module provides all the functionality to build out a basis of
+BDM_{k} for k<=3 functions to support inner product calculations.
+
+This includes:
+ * building out the set of basic polynomial basis functions
+ * building out the vector bdm basis functions
+ * building out the axi-symmetric bdm tensor basis functions
+"""
 import numpy as np
 import copy
 import math
@@ -14,6 +23,9 @@ class Empty(object):
         pass
 
 class Basis(object):
+    """
+    Base class for building out all bdm basis functions.
+    """
 
     def __init__(self):
         self._set_function_dispatcher()
@@ -518,6 +530,89 @@ class P2Basis_2D(Basis):
     def get_func_grad(self,dof_num):
         return self.basis_funcs_grad[dof_num]
 
+class P3Basis_2D(Basis):
+
+    def __init__(self):
+        super(P3Basis_2D,self).__init__()
+        self.set_degree(3)
+        self._initialize_element_functions()
+        self._set_local_function_dispatcher()
+
+    def _set_local_function_dispatcher(self):
+        local_functions = {'vals' : self.get_func_val,
+                           'dvals' : self.get_func_dval}
+        self._function_dispatcher.update(local_functions)
+
+    def get_func_val(self,
+                     basis_func_idx,
+                     quad_pt,
+                     mapping):
+        basis_func = self.get_basis_func(basis_func_idx)
+        xi = quad_pt.vals[0] ; eta = quad_pt.vals[1]
+        return basis_func(xi, eta)
+
+    def get_func_dval(self,
+                      basis_func_idx,
+                      quad_pt,
+                      mapping):
+        basis_func = self.get_basis_dfunc(basis_func_idx)
+        xi = quad_pt.vals[0] ; eta = quad_pt.vals[1]
+        xi = basis_func[0](xi,eta) ; eta = basis_func[1](xi,eta)
+        x, y = mapping.apply_inv_transpose_jacobian_mat(xi,eta)
+        return x, y
+
+    def get_basis_func_lst(self):
+        return self._basis_funcs
+    
+    def get_basis_func(self, idx):
+        return self._basis_funcs[idx]
+
+    def get_basis_dfunc(self,idx):
+        return self._basis_funcs_grad[idx]
+        
+    def get_name(self):
+        return "p3_basis"            
+
+    def get_num_dof(self):
+        return 10
+
+    def get_num_interior_dof(self):
+        return 10
+
+    def get_num_dof_per_edge(self):
+        return 0
+
+    def get_num_edge_dof(self):
+        return 0
+
+    def get_num_dof_per_node(self):
+        return 0
+
+    def _initialize_element_functions(self):
+        self._basis_funcs = [lambda xi, eta: (9./2)*(eta-2./3)*(eta-1./3)*eta ,
+                             lambda xi, eta: (27./2)*(1.-xi-eta)*(eta-1./3)*eta ,
+                             lambda xi, eta: (27./2)*xi*(eta-1./3)*eta ,
+                             lambda xi, eta: (27./2)*(1.-xi-eta)*(2./3-xi-eta)*eta,
+                             lambda xi, eta: 27*xi*eta*(1-xi-eta),
+                             lambda xi, eta: (27/2.)*xi*eta*(2./3-eta),
+                             lambda xi, eta: (9./2)*(1-xi-eta)*(2./3-xi-eta)*(1./3-xi-eta),
+                             lambda xi, eta: (27./2)*(1-xi-eta)*(2./3-xi-eta)*xi,
+                             lambda xi, eta: (27./2)*(1-xi-eta)*xi*(xi-1./3),
+                             lambda xi, eta: (9./2)*xi*(xi-1./3)*(xi-2./3)]
+
+        self._basis_funcs_grad = [[lambda xi, eta: 4*eta, lambda xi, eta: 4*xi],
+                                  [lambda xi, eta: -4*eta,  lambda xi, eta: -4*(xi + 2*eta -1)],
+                                  [lambda xi, eta: -4*(2*xi + eta -1), lambda xi, eta: -4*x],
+                                  [lambda xi, eta: 4*xi + 4*eta - 3,  lambda xi, eta: 4*xi + 4*eta -3],
+                                  [lambda xi, eta: 4*(xi - 0.25), lambda xi, eta: 0.],
+                                  [lambda xi, eta: 0., lambda xi, eta: 4*(eta - 0.25)]]
+                                  
+    def get_func(self,dof_num):
+        return self._basis_funcs[dof_num]
+
+    def get_func_grad(self,dof_num):
+        return self.basis_funcs_grad[dof_num]
+
 
 class P1VecBasis_2D(Basis):
 
@@ -700,7 +795,7 @@ class BDMTensBasis(Basis):
         zero_fun = lambda x,y : 0.
         if self.get_degree() == 1:
             for i, basis_ele in enumerate(basis_lst):
-                j = i / 3
+                j = i // 3
                 k = i % 3
                 a_tmp = [basis_ele[0], basis_ele[1]]
                 b_tmp = [zero_fun, zero_fun]
@@ -708,7 +803,7 @@ class BDMTensBasis(Basis):
                 self._bdm_tens_lst[6*j + k + 3] = np.array([b_tmp,a_tmp])
         elif self.get_degree() == 2:
             for i, basis_ele in enumerate(basis_lst[0:9]):
-                j = i / 3
+                j = i // 3
                 k = i % 3
                 a_tmp = [basis_ele[0], basis_ele[1]]
                 b_tmp = [zero_fun, zero_fun]
@@ -742,7 +837,7 @@ class BDMTensBasis(Basis):
         zero_func = lambda x,y : 0.
         if self.get_degree() == 1:
             for i, basis_div_func in enumerate(basis_div_lst):
-                j = i / 3
+                j = i // 3
                 k = i % 3
                 self._basis_div_lst[6*j + k] = np.array([basis_div_func, zero_func])
                 self._basis_div_lst[6*j + k + 3] = np.array([zero_func , basis_div_func])
@@ -1068,7 +1163,7 @@ class BDMBasis(Basis):
             return self.edge_functions.edge_funcs[basis_edge][basis_edge_idx]
         elif dof_num is not None:
             basis_edge = dof_num % 3
-            basis_edge_idx = dof_num / 3
+            basis_edge_idx = dof_num // 3
             return self.edge_functions.edge_funcs[basis_edge][basis_edge_idx]
 
 class BDMSubFuncs(object):

@@ -664,13 +664,14 @@ class ElasticityErrorHandler(SolutionHandler):
                                      true_solution,
                                      r=0):
         mesh = self.get_mesh()
-        k = self.get_basis()[1].get_degree()
+        k = self.get_basis()[2].get_degree()
         quadrature = quad.Quadrature(self.quad_degree)
 
+#        import pdb ; pdb.set_trace()
         num_mesh_elements = mesh.get_num_mesh_elements()
         element_errors = np.zeros(num_mesh_elements)
-        basis = self.get_sub_basis(1)
-        basis_2 = self.get_sub_basis(2)
+#        basis = self.get_sub_basis(1)
+#        basis_2 = self.get_sub_basis(2)
 
         for eN in range(num_mesh_elements):
             element = mesh.get_element(eN)
@@ -678,10 +679,10 @@ class ElasticityErrorHandler(SolutionHandler):
 
             for quad_pt in quadrature.get_element_quad_pts():
                 sol_val = self.get_element_solution_approx(element=element,
-                                                           basis_idx=1,
+                                                           basis_idx=2,
                                                            quad_pt=quad_pt)
                 sol_val_2 = self.get_element_solution_approx(element=element,
-                                                             basis_idx=2,
+                                                             basis_idx=3,
                                                              quad_pt=quad_pt)
 #                import pdb ; pdb.set_trace()
 
@@ -690,6 +691,8 @@ class ElasticityErrorHandler(SolutionHandler):
                 r_val = ele_quad_pt[0]**r
 
                 true_solution_vals = true_solution.get_f_eval(ele_quad_pt)
+#                u1_error_sq = (true_solution_vals[0] - sol_val[0])**2
+#                u2_error_sq = (true_solution_vals[1] - sol_val[1])**2                
                 u1_error_sq = (true_solution_vals[0] - ele_quad_pt[1]*sol_val_2[1][0] - sol_val[0])**2
                 u2_error_sq = (true_solution_vals[1] + ele_quad_pt[0]*sol_val_2[1][0] - sol_val[1])**2
                 element_errors[eN] += (u1_error_sq + u2_error_sq) * r_val * ele_quad_pt.get_quad_weight()

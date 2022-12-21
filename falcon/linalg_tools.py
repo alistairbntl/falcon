@@ -123,6 +123,22 @@ class Operators():
         assert sig_tens[1][1]*tau_tens[1][1] == 0.
         return np.tensordot(tau_tens,sig_tens)
 
+    @staticmethod
+    def first_row_axi_divergence_scalar_product(tau_tens,
+                                                r_val,
+                                                scalar):
+        """ 
+        Computes the divergence of the first row of a tensor
+        and a scalar function.
+
+        Arguments
+        ---------
+        tau_tens : dict
+        """
+        row_1_div = ( 1./r_val * tau_tens['Jt_vals'][0,0] +
+                      tau_tens['div'][0] )
+        return row_1_div * scalar
+    
 class GlobalMatrix():
 
     def __init__(self,
